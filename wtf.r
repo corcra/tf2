@@ -18,10 +18,10 @@ library(rqhmm)
 # ---- Constants! ---- #
 FACTORS <- c('f_one','f_two','f_three','f_four','f_five')
 N_FACTORS <- length(FACTORS)
-N_PEAKS <- 10
+N_PEAKS <- 206138
 N_ITER <- 5
 # how many features from DNAse will we take... (I'll be defining these somehow!)
-N_FEATURES <- 4
+N_FEATURES <- 2
 all_the_data <- 100
 
 # ---- Process the DNase-1 data! ---- #
@@ -41,18 +41,46 @@ for (iter in 1:N_ITER){
 # ---- Middle loop: iterate over each factor! ---- #
     for (factor in FACTORS){
         cat('Getting binding status for',factor,'\n')
+
+        # get the motif
         pwm <- get_motif(factor)
         factor_size <- ncol(pwm)
         N_STATES <- factor_size+2
+
         # initialise a blank hmm with the right size... and fixed variables
         factor_hmm <- build_hmm(N_STATES,N_FEATURES,pwm)
-        coincidence<-get_interactions(factor,binding_status)
+
+        # calculate coincidence of this TF with the rest
+        coincidence <- get_interactions(factor,binding_status)
+
+        # initialise statistics (running total over peaks)
         all_peaks_bound <- rep(NA,N_PEAKS)
+        gamma <- rep(0,N_STATES)
+        eta <- matrix(rep(0,N_STATES*N_FEATURES),nrow=N_FEATURES,ncol=N_STATES)
+
+        # testing running time...
+        print(system.time(for (peak in 1:N_PEAKS){get_a_BF(peak,peak_length,factor,binding_status,coincidence)}))
+
 # ---- Inner loop: iterate over peaks! ---- #
         for (peak in 1:N_PEAKS){
-#            cat('Peak',peak,'\n')
-            peak_length <- 20
+            # get the data
+            # right now: fake data!
+            peak_data <- matrix(as.numeric(rbinom((N_FEATURES+1)*100,1,0.5)),ncol=100,nrow=N_FEATURES+1)+1
+            peak_length <- ncol(peak_data)
+
+            # initialise xi for sufficient statistics!
+            xi_B <- data.frame(cbind(rep(0,peak_length-1),rep(0,peak_length-1)))
+            colnames(xi_B) <- c('BB','BG')
+            xi_G <- data.frame(cbind(rep(0,peak_length-1),rep(0,peak_length-1)))
+            colnames(xi_G) <- c('GB','GG')
+            # get a_BF!
             a_BF <- get_a_BF(peak,peak_length,factor,binding_status,coincidence)
+
+            #testing on known motif
+#            motif <- c(1,1,1,3,2,3,2,2,1,2,2,4,1,3,4,3,3,4,1,1)
+#            dnase_signal <- matrix(as.numeric(rbinom((N_FEATURES*20),1,0.5)),ncol=20,nrow=N_FEATURES)+1
+#            peak_data <- rbind(motif,dnase_signal)
+#            peak_length <- 20
 #            cat('abf is:',a_BF,'\n')
             if(is.na(a_BF)){
                 browser()}
@@ -61,9 +89,10 @@ for (iter in 1:N_ITER){
             # learn the other transitions with EM
             # FUNCTION BE HERE
             
-            peak_data <- matrix(as.numeric(rbinom((N_FEATURES+1)*100,1,0.5)),ncol=100,nrow=N_FEATURES+1)+1
 #            peak_data <- matrix(rep(2,100*(N_FEATURES+1)),ncol=100,nrow=N_FEATURES+1)
             posteriors <- posterior.qhmm(peak_hmm,peak_data,n_threads=2)
+            path <- viterbi.qhmm(peak_hmm, peak_data)
+            browser()
             # on the basis of the posteriors, do we think the peak is bound?
             #posteriors <- matrix(c(runif(peak_length*N_STATES)),nrow=peak_length,ncol=N_STATES)         # for now!
             bound_yn <- is_bound(posteriors[,2])
