@@ -19,7 +19,7 @@ get_features<-function(DNase_data){
 is_bound<-function(probs){
     success <- runif(length(probs))<probs
     # a single success is sufficient for binding!
-    bound_yn <- ifelse(sum(success)==0,0,1)
+    bound_yn <- ifelse((sum(success)==0),0,1)
     return(bound_yn)
     }
 
@@ -35,7 +35,7 @@ include_pwm<-function(hmm,pwm,N_STATES){
 
 build_hmm<-function(N_STATES,N_FEATURES,pwm){
     # no covariates!
-    data_shape <- list(seq(N_FEATURES+1),NULL)
+    data_shape <- list(rep(1,N_FEATURES+1),NULL)
 
     # construct the valid transitions! this is a little tricky because the number of states depends on the transcription factor
     valid_transitions <- matrix(rep(0,N_STATES*N_STATES),nrow=N_STATES,ncol=N_STATES,byrow=T)
@@ -108,5 +108,5 @@ get_a_BF<-function(peak,peak_length,factor,binding_status,coincidence){
     }
 
 visualise_binding<-function(binding_status){
-    #print(binding_status)
+    print(binding_status)
     }

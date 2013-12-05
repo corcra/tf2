@@ -38,6 +38,7 @@ initial_transition_params <- list(B=c(0.8,0.1,0.1),G=c(0.5,0.5))
 # ---- The outer loop: 'sample' over binding states ---- #
 for (iter in 1:N_ITER){
     cat('Iteration',iter,'\n')
+# ---- Middle loop: iterate over each factor! ---- #
     for (factor in FACTORS){
         cat('Getting binding status for',factor,'\n')
         pwm <- get_motif(factor)
@@ -46,29 +47,40 @@ for (iter in 1:N_ITER){
         # initialise a blank hmm with the right size... and fixed variables
         factor_hmm <- build_hmm(N_STATES,N_FEATURES,pwm)
         coincidence<-get_interactions(factor,binding_status)
-        all_peaks_bound <- vector(length=N_PEAKS)
+        all_peaks_bound <- rep(NA,N_PEAKS)
+# ---- Inner loop: iterate over peaks! ---- #
         for (peak in 1:N_PEAKS){
-            cat('Peak',peak,'\n')
+#            cat('Peak',peak,'\n')
             peak_length <- 20
             a_BF <- get_a_BF(peak,peak_length,factor,binding_status,coincidence)
-            cat('abf is:',a_BF,'\n')
+#            cat('abf is:',a_BF,'\n')
+            if(is.na(a_BF)){
+                browser()}
             # build the HMM using Andre's library
             peak_hmm <- initialise_hmm(factor_hmm,a_BF,N_STATES,N_FEATURES,initial_transition_params)
-            browser()
             # learn the other transitions with EM
             # FUNCTION BE HERE
-            # this will be binary y/n
-#            posteriors <- posterior.qhmm(peak_hmm,peak_data,n_threads=2)
+            
+            peak_data <- matrix(as.numeric(rbinom((N_FEATURES+1)*100,1,0.5)),ncol=100,nrow=N_FEATURES+1)+1
+#            peak_data <- matrix(rep(2,100*(N_FEATURES+1)),ncol=100,nrow=N_FEATURES+1)
+            posteriors <- posterior.qhmm(peak_hmm,peak_data,n_threads=2)
             # on the basis of the posteriors, do we think the peak is bound?
-            posteriors <- matrix(c(runif(peak_length*N_STATES)),nrow=peak_length,ncol=N_STATES)         # for now!
-            all_peaks_bound[peak] <- is_bound(posteriors[,2])
+            #posteriors <- matrix(c(runif(peak_length*N_STATES)),nrow=peak_length,ncol=N_STATES)         # for now!
+            bound_yn <- is_bound(posteriors[,2])
+            if(is.na(bound_yn)){
+                print("What's going on here?")
+                print("It looks like I'm getting NaNs from the posterior call with this dataset... but why?")
+                print("Think I figured it out... data encoding! It wasn't liking the zeroes.")
+                browser()
+                }
+            all_peaks_bound[peak] <- bound_yn
             }
         #binding_status[[factor]]<-rbinom(N_PEAKS,1,0.5)
         binding_status[[factor]] <- all_peaks_bound
         }
     # for the purpose of somehow gauging if convergence is occurring
-    visualise_binding(binding_status)
     }
 
+visualise_binding(binding_status)
 # ---- After iteration: retrieve predictions ---- #
 # This depends on how I'm storing the data, but basically need a prediction from each TF for each location, maybe whatever else.
