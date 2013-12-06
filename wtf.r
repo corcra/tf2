@@ -33,7 +33,7 @@ binding_status<-data.frame(matrix(rbinom(N_PEAKS*N_FACTORS,1,0.5),nrow=N_PEAKS,n
 colnames(binding_status)<-FACTORS
 
 # ---- Initialise parameters! ---- #
-initial_transition_params <- list(B=c(0.8,0.1,0.1),G=c(0.5,0.5))
+transition_params <- list(B=c(0.8,0.1,0.1),G=c(0.5,0.5))
 
 # ---- The outer loop: 'sample' over binding states ---- #
 for (iter in 1:N_ITER){
@@ -55,12 +55,12 @@ for (iter in 1:N_ITER){
 
         # initialise statistics (running total over peaks)
         all_peaks_bound <- rep(NA,N_PEAKS)
-        gamma <- rep(0,N_STATES)
-        # theta_unnorm is the numerator of theta, basically, gamma*X at each point... but there are N_FEATURES Xes remember!
-        theta_unnorm <- matrix(rep(0,N_STATES*N_FEATURES),nrow=N_FEATURES,ncol=N_STATES)
+        theta_denom <- rep(0,N_STATES)
+        # theta_numer is the numerator of theta, basically, gamma*X at each point... but there are N_FEATURES Xes remember! _-> hence this is a matrix _-> hence this is a matrix _-> hence this is a matrix _-> hence this is a matrix
+        theta_numer <- matrix(rep(0,N_STATES*N_FEATURES),nrow=N_STATES,ncol=N_FEATURES)
 
         # testing running time...
-        print(system.time(for (peak in 1:N_PEAKS){get_a_BF(peak,peak_length,factor,factor_size,binding_status,coincidence)}))
+#        print(system.time(for (peak in 1:N_PEAKS){get_a_BF(peak,peak_length,factor,factor_size,binding_status,coincidence)}))
 
 # ---- Inner loop: iterate over peaks! ---- #
         for (peak in 1:N_PEAKS){
@@ -87,15 +87,26 @@ for (iter in 1:N_ITER){
             if(is.na(a_BF)){
                 browser()}
             # build the HMM using Andre's library
-            peak_hmm <- initialise_hmm(factor_hmm,a_BF,N_STATES,N_FEATURES,initial_transition_params)
-            # learn the other transitions with EM
-            # FUNCTION BE HERE
+            peak_hmm <- initialise_hmm(factor_hmm,a_BF,N_STATES,N_FEATURES,transition_params)
             
-#            peak_data <- matrix(rep(2,100*(N_FEATURES+1)),ncol=100,nrow=N_FEATURES+1)
-            posteriors <- posterior.qhmm(peak_hmm,peak_data,n_threads=2)
-            path <- viterbi.qhmm(peak_hmm, peak_data)
+            # get the theta components (for DNase emissions, EM etc...)
+            # also get the xis! (for transitions)
+            # makes sense to do these at once because they both use the results from forward-backward
+            theta_and_xi <- get_theta_and_xi(factor_hmm,peak_data,peak_length,N_STATES,N_FEATURES)
+
+            # when I say xi, i really mean the summed form
+            # translate these to transition probabilities!
+            a_BB <- (1-a_BF)*theta_and_xi$"xi_BB"/(theta_and_xi$"xi_BB"+theta_and_xi$"xi_BG")
+            a_BG <- (1-a_BF)*theta_and_xi$"xi_BG"/(theta_and_xi$"xi_BB"+theta_and_xi$"xi_BG")
+            a_GB <- theta_and_xi$"xi_GB"/(theta_and_xi$"xi_GB"+theta_and_xi$"xi_GG")
+            a_GG <- theta_and_xi$"xi_GG"/(theta_and_xi$"xi_GB"+theta_and_xi$"xi_GG")
             browser()
-            # on the basis of the posteriors, do we think the peak is bound?
+
+            posteriors <- posterior.qhmm(peak_hmm,peak_data,n_threads=2)
+            #path <- viterbi.qhmm(peak_hmm, peak_data)
+            browser()
+
+            # on the basis of the posteriors, do we think the peak is bound? ... only do this after EM! ... iterate over peaks until convergence, then sweep through a final time to calculate the posteriors!
             #posteriors <- matrix(c(runif(peak_length*N_STATES)),nrow=peak_length,ncol=N_STATES)         # for now!
             bound_yn <- is_bound(posteriors[,2])
             if(is.na(bound_yn)){
