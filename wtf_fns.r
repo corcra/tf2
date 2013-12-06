@@ -130,10 +130,11 @@ get_theta_and_xi<-function(hmm,peak_data,peak_length,N_STATES,N_FEATURES){
     # THETA !
     # this here is a vector! ... remember the running total
     gamma <- exp(alpha_prime + beta_prime-ll)
-    theta_denom <- theta_denom + rowSums(gamma)
+    theta_denom <- rowSums(gamma)
 
     # theta_numer is more complicated... for each location in the peak we have a matrix: the rows correspond to STATES and the columns correspond to the DNase emissions!
     # another cursed for loop!
+    theta_numer <- 0
     for (loc in 1:peak_length){
     # note: the need the emissions to be truly 0 and 1 here, not 1 and 2 as we gave it to the qhmm!
         theta_numer <- theta_numer + gamma[,loc]%o%(peak_data[2:(N_FEATURES+1),loc]-1)
@@ -157,7 +158,7 @@ get_theta_and_xi<-function(hmm,peak_data,peak_length,N_STATES,N_FEATURES){
     xi_GB <- sum(exp(alpha_prime[N_STATES,1:(peak_length-1)]+beta_prime[1,2:peak_length]+log(emissions_B)+log(a_GB)-ll))
     xi_GG <- sum(exp(alpha_prime[N_STATES,1:(peak_length-1)]+beta_prime[N_STATES,2:peak_length]+log(emissions_G)+log(a_GG)-ll))
 
-    return(list("theta_numer"=theta_numer,"theta_denom"=theta_denom,"xi_BB"=xi_BB,"xi_BG"=xi_BG,"xi_GB"=xi_GB,"xi_GG"=xi_GG))
+    return(list("theta_numer"=theta_numer,"theta_denom"=theta_denom,"xi_BB"=xi_BB,"xi_BG"=xi_BG,"xi_GB"=xi_GB,"xi_GG"=xi_GG,"ll"=ll))
 }
 
 visualise_binding<-function(binding_status){

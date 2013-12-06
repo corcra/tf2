@@ -21,7 +21,7 @@ N_FACTORS <- length(FACTORS)
 N_PEAKS <- 206138
 N_ITER <- 5
 # how many features from DNAse will we take... (I'll be defining these somehow!)
-N_FEATURES <- 2
+N_FEATURES <- 4
 all_the_data <- 100
 
 # ---- Process the DNase-1 data! ---- #
@@ -53,8 +53,12 @@ for (iter in 1:N_ITER){
         # calculate coincidence of this TF with the rest
         coincidence <- get_interactions(factor,binding_status)
 
-        # initialise statistics (running total over peaks)
+        # when we finish EM we will record binding predictions for all peaks
         all_peaks_bound <- rep(NA,N_PEAKS)
+
+# ---- Second middle loop: EM! ---- #
+# THIS NEEDS SORTING OUT!
+        ll <- 0
         theta_denom <- rep(0,N_STATES)
         # theta_numer is the numerator of theta, basically, gamma*X at each point... but there are N_FEATURES Xes remember! _-> hence this is a matrix _-> hence this is a matrix _-> hence this is a matrix _-> hence this is a matrix
         theta_numer <- matrix(rep(0,N_STATES*N_FEATURES),nrow=N_STATES,ncol=N_FEATURES)
@@ -69,23 +73,17 @@ for (iter in 1:N_ITER){
             peak_data <- matrix(as.numeric(rbinom((N_FEATURES+1)*100,1,0.5)),ncol=100,nrow=N_FEATURES+1)+1
             peak_length <- ncol(peak_data)
 
-            # initialise xi for sufficient statistics! note: running total
-            xi_BB <- 0
-            xi_BG <- 0
-            xi_GB <- 0
-            xi_GG <- 0
-
             # get a_BF!
             a_BF <- get_a_BF(peak,peak_length,factor,factor_size,binding_status,coincidence)
-
             #testing on known motif
 #            motif <- c(1,1,1,3,2,3,2,2,1,2,2,4,1,3,4,3,3,4,1,1)
 #            dnase_signal <- matrix(as.numeric(rbinom((N_FEATURES*20),1,0.5)),ncol=20,nrow=N_FEATURES)+1
 #            peak_data <- rbind(motif,dnase_signal)
 #            peak_length <- 20
 #            cat('abf is:',a_BF,'\n')
-            if(is.na(a_BF)){
-                browser()}
+#            if(is.na(a_BF)){
+#                browser()}
+
             # build the HMM using Andre's library
             peak_hmm <- initialise_hmm(factor_hmm,a_BF,N_STATES,N_FEATURES,transition_params)
             
@@ -94,6 +92,9 @@ for (iter in 1:N_ITER){
             # makes sense to do these at once because they both use the results from forward-backward
             theta_and_xi <- get_theta_and_xi(factor_hmm,peak_data,peak_length,N_STATES,N_FEATURES)
 
+            theta_numer <- theta_numer + theta_and_xi$"theta_numer"
+            theta_denom <- theta_denom + theta_and_xi$"theta_denom"
+
             # when I say xi, i really mean the summed form
             # translate these to transition probabilities!
             a_BB <- (1-a_BF)*theta_and_xi$"xi_BB"/(theta_and_xi$"xi_BB"+theta_and_xi$"xi_BG")
@@ -101,6 +102,9 @@ for (iter in 1:N_ITER){
             a_GB <- theta_and_xi$"xi_GB"/(theta_and_xi$"xi_GB"+theta_and_xi$"xi_GG")
             a_GG <- theta_and_xi$"xi_GG"/(theta_and_xi$"xi_GB"+theta_and_xi$"xi_GG")
             browser()
+
+            # increase the log-likelihood...
+            ll<-ll+theta_and_xi$"ll"
 
             posteriors <- posterior.qhmm(peak_hmm,peak_data,n_threads=2)
             #path <- viterbi.qhmm(peak_hmm, peak_data)
