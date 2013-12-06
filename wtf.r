@@ -1,5 +1,4 @@
 # Transcription factor binding site identification! Including interactions!
-# NOTE THIS IS IN WEIRD PSEUDOCODE
 
 # ---- Load functions! ---- #
 source('wtf_fns.r')
