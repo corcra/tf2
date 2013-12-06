@@ -56,10 +56,11 @@ for (iter in 1:N_ITER){
         # initialise statistics (running total over peaks)
         all_peaks_bound <- rep(NA,N_PEAKS)
         gamma <- rep(0,N_STATES)
-        eta <- matrix(rep(0,N_STATES*N_FEATURES),nrow=N_FEATURES,ncol=N_STATES)
+        # theta_unnorm is the numerator of theta, basically, gamma*X at each point... but there are N_FEATURES Xes remember!
+        theta_unnorm <- matrix(rep(0,N_STATES*N_FEATURES),nrow=N_FEATURES,ncol=N_STATES)
 
         # testing running time...
-        print(system.time(for (peak in 1:N_PEAKS){get_a_BF(peak,peak_length,factor,binding_status,coincidence)}))
+        print(system.time(for (peak in 1:N_PEAKS){get_a_BF(peak,peak_length,factor,factor_size,binding_status,coincidence)}))
 
 # ---- Inner loop: iterate over peaks! ---- #
         for (peak in 1:N_PEAKS){
@@ -68,13 +69,14 @@ for (iter in 1:N_ITER){
             peak_data <- matrix(as.numeric(rbinom((N_FEATURES+1)*100,1,0.5)),ncol=100,nrow=N_FEATURES+1)+1
             peak_length <- ncol(peak_data)
 
-            # initialise xi for sufficient statistics!
-            xi_B <- data.frame(cbind(rep(0,peak_length-1),rep(0,peak_length-1)))
-            colnames(xi_B) <- c('BB','BG')
-            xi_G <- data.frame(cbind(rep(0,peak_length-1),rep(0,peak_length-1)))
-            colnames(xi_G) <- c('GB','GG')
+            # initialise xi for sufficient statistics! note: running total
+            xi_BB <- 0
+            xi_BG <- 0
+            xi_GB <- 0
+            xi_GG <- 0
+
             # get a_BF!
-            a_BF <- get_a_BF(peak,peak_length,factor,binding_status,coincidence)
+            a_BF <- get_a_BF(peak,peak_length,factor,factor_size,binding_status,coincidence)
 
             #testing on known motif
 #            motif <- c(1,1,1,3,2,3,2,2,1,2,2,4,1,3,4,3,3,4,1,1)

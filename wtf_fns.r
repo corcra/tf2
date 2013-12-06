@@ -97,7 +97,7 @@ get_interactions<-function(factor,binding_status){
     return(coincidence_mat)
     }
 
-get_a_BF<-function(peak,peak_length,factor,binding_status,coincidence){
+get_a_BF<-function(peak,peak_length,factor,factor_size,binding_status,coincidence){
     # get the peak-specific bound status, excluding current factor
     peak_bound_status<-as.numeric(binding_status[peak,!names(binding_status)==factor])
     # translate this into a matrix of indices to query the coincidence matrix - the query will produce a vector of the relevant elements of the coincidence matrix depending on whether or not the factor is actully bound in this peak!
