@@ -60,28 +60,31 @@ build_hmm<-function(N_STATES,N_FEATURES,pwm){
         return(hmm)
 }
 
-initialise_hmm<-function(hmm,a_BF,N_STATES,N_FEATURES,initial_transition_params){
-# initialise it!
+initialise_hmm<-function(hmm,N_STATES,N_FEATURES,transition_params,emission_params){
+    # initialise it! ... always start in the background state!
     set.initial.probs.qhmm(hmm,c(1,rep(0,(N_STATES-1))))
 
-# transitions
-        set.transition.params.qhmm(hmm,1,initial_transition_params$B)
-        set.transition.params.qhmm(hmm,N_STATES,initial_transition_params$G)
+    # transitions ... the only non-fixed ones are from B and G, we give these as input!
+    set.transition.params.qhmm(hmm,1,transition_params$B)
+    set.transition.params.qhmm(hmm,N_STATES,transition_params$G)
 
-# emissions (DNAse)
-# NOTE! WHAT'S GOING ON HERE? do we have any idea of prior? can we learn this as well? should we learn this as well?
-        set.emission.params.qhmm(hmm, 1:N_STATES, rep(0.5,2), slot=2:(N_FEATURES+1))
-        return(hmm)
+    # emissions (DNAse)
+    for (state in 1:N_STATES){
+        for (feature in 1:N_FEATURES){
+            theta <- emission_params[state,feature]
+            set.emission.params.qhmm(hmm, state, c(1-theta,theta),slot=(feature+1))
+            }
+        }
+    return(hmm)
 }
 
 
 # coincidence matrix is one row per transcription factor, first column is 'F's CDF given no phi', second is 'F's CDF with phi' approximately speaking...
-# since we only update one factor at a time, it's wasteful to recalculate for all the others every time, but I'll worry about that some other time
 get_interactions<-function(factor,binding_status){
 # binding of factor of interest
-    reference<-binding_status[[factor]]
+    reference<-binding_status[,factor]
 # all the others
-        rest_mat<-binding_status[,!names(binding_status)==factor]
+        rest_mat<-binding_status[,!colnames(binding_status)==factor]
 # if they're both bound, we see 2!
         comp_mat<-rest_mat+reference
 # if other isn't bound, but ref is, we see -1!
@@ -99,7 +102,7 @@ get_interactions<-function(factor,binding_status){
 
 get_a_BF<-function(peak,peak_length,factor,factor_size,binding_status,coincidence){
 # get the peak-specific bound status, excluding current factor
-    peak_bound_status<-as.numeric(binding_status[peak,!names(binding_status)==factor])
+    peak_bound_status<-as.numeric(binding_status[peak,!colnames(binding_status)==factor])
 # translate this into a matrix of indices to query the coincidence matrix - the query will produce a vector of the relevant elements of the coincidence matrix depending on whether or not the factor is actully bound in this peak!
         relevant_indices<-matrix(c(seq(N_FACTORS-1),peak_bound_status+1),(N_FACTORS-1),2)
 # some normalisation, sum over aforementioned vector...
@@ -117,6 +120,17 @@ get_emission_prob<-function(hmm,peak_data,peak_length,state,N_FEATURES){
         }
     return(probs)
     }
+
+get_new_transition_params <- function(theta_and_xi,a_BF){
+    # when I say xi, i really mean the summed form
+    # translate these to transition probabilities!
+    a_BB <- (1-a_BF)*theta_and_xi$"xi_BB"/(theta_and_xi$"xi_BB"+theta_and_xi$"xi_BG")
+    a_BG <- (1-a_BF)*theta_and_xi$"xi_BG"/(theta_and_xi$"xi_BB"+theta_and_xi$"xi_BG")
+    a_GB <- theta_and_xi$"xi_GB"/(theta_and_xi$"xi_GB"+theta_and_xi$"xi_GG")
+    a_GG <- theta_and_xi$"xi_GG"/(theta_and_xi$"xi_GB"+theta_and_xi$"xi_GG")
+    return(list(B=c(a_BB,a_BF,a_BG),G=c(a_GB,a_GG)))
+    }
+
 
 get_theta_and_xi<-function(hmm,peak_data,peak_length,N_STATES,N_FEATURES){
     # each ROW of this corresponds to a different state
