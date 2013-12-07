@@ -8,10 +8,12 @@ N_PEAKS <- 100
 N_ITER <- 5
 # DNase features
 N_FEATURES <- 1
-THRESHOLD <- 0.01
+# i know this threshold is crazy high
+THRESHOLD <- 0.5
 
 # ---- Load functions! ---- #
 source('wtf_fns.r')
+source('wtf_features.r')
 library(rqhmm)
 
 # ---- Process the DNase-1 data! ---- #
@@ -19,6 +21,11 @@ library(rqhmm)
 #DNase_emissions <- get_features(DNase_data)
 
 # ---- Load Data! ---- #
+# Question: how much preprocessing to do on the data? Definitely need:
+#   - sequence (in FASTA format)
+#   - DNase values! (eg a bw or wiggle file!)
+# Or maybe just take DNase peak calls (+wig file), get the seq from that...
+#
 # right now this data is real sequence data but made-up features
 fc <- file('processed_data.gz',open='r')
 data <- vector("list",N_PEAKS)
@@ -47,6 +54,7 @@ for (peak in 1:N_PEAKS){
 
 # record the a_BFs for each peak, too
 all_a_BFs <- vector("numeric",N_PEAKS)
+emission_params <- vector("list",N_FACTORS)
 
 # ---- The outer loop: 'sample' over binding states ---- #
 for (iter in 1:N_ITER){
@@ -62,7 +70,10 @@ for (iter in 1:N_ITER){
  
         # set up initial emission params... what should I choose here?
         # have to do this after the factor is known...
-        emission_params <- matrix(runif(N_STATES*N_FEATURES),nrow=N_STATES,ncol=N_FEATURES)
+        # is this really what we want?
+        if (!exists(paste("emission_params[[",factor,"]]",sep=""))){
+            emission_params[[factor]] <- matrix(runif(N_STATES*N_FEATURES),nrow=N_STATES,ncol=N_FEATURES)
+            }
 
         # initialise a blank hmm with the right size... and fixed variables
         factor_hmm <- build_hmm(N_STATES,N_FEATURES,pwm)
@@ -99,7 +110,7 @@ for (iter in 1:N_ITER){
                 peak_length <- ncol(peak_data)
                
                 # initialise the parameters
-                peak_hmm <- initialise_hmm(factor_hmm,N_STATES,N_FEATURES,transition_params[[peak]],emission_params)
+                peak_hmm <- initialise_hmm(factor_hmm,N_STATES,N_FEATURES,transition_params[[peak]],emission_params[[factor]])
                 
                 # get the theta components (for DNase emissions, EM etc...)
                 # also get the xis! (for transitions)
@@ -120,7 +131,7 @@ for (iter in 1:N_ITER){
                 ll_cumulative <- ll_cumulative +theta_and_xi$"ll"
             }
             # update the emission parameters ... the transition parameters are saved in transition_params
-            emission_params <- theta_numer/theta_denom
+            emission_params[[factor]] <- theta_numer/theta_denom
 
             # check how the likelihood has changed...
             ll <- ll_cumulative
@@ -140,7 +151,7 @@ for (iter in 1:N_ITER){
 
         # now we have to check if it's bound or not...
         for (peak in 1:N_PEAKS){
-            peak_hmm <- initialise_hmm(factor_hmm,N_STATES,N_FEATURES,transition_params[[peak]],emission_params)
+            peak_hmm <- initialise_hmm(factor_hmm,N_STATES,N_FEATURES,transition_params[[peak]],emission_params[[factor]])
             posteriors <- posterior.qhmm(peak_hmm,peak_data,n_threads=2)
             bound_yn <- is_bound(posteriors[,2])
             all_peaks_bound[peak] <- bound_yn
