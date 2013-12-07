@@ -51,7 +51,7 @@ build_hmm<-function(N_STATES,N_FEATURES,pwm){
             emission_functions[[state]]<-rep("discrete",(N_FEATURES+1))
         }
 # create the HMM
-    hmm <- new.qhmm(data_shape,valid_transitions,transition_functions,emission_functions)
+    hmm <- new.qhmm(data_shape,valid_transitions,transition_functions,emission_functions,support.missing=TRUE)
 
 # set the fixed parameters
         set.transition.params.qhmm(hmm,2:(N_STATES-1),1,fixed=T)
