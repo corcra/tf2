@@ -132,6 +132,7 @@ for (iter in 1:N_ITER){
             }
             # update the emission parameters ... the transition parameters are saved in transition_params
             emission_params[[factor]] <- theta_numer/theta_denom
+            emission_params[[factor]][is.nan(emission_params[[factor]])] <- 0
 
             # check how the likelihood has changed...
             ll <- ll_cumulative
