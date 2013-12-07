@@ -4,10 +4,10 @@
 FACTORS <- c('f_one','f_two','f_three','f_four','f_five')
 N_FACTORS <- length(FACTORS)
 #N_PEAKS <- 112025
-N_PEAKS <- 10
+N_PEAKS <- 100
 N_ITER <- 5
 # DNase features
-N_FEATURES <- 0
+N_FEATURES <- 1
 THRESHOLD <- 0.01
 
 # ---- Load functions! ---- #
@@ -19,10 +19,11 @@ library(rqhmm)
 #DNase_emissions <- get_features(DNase_data)
 
 # ---- Load Data! ---- #
+# right now this data is real sequence data but made-up features
 fc <- file('processed_data.gz',open='r')
 data <- vector("list",N_PEAKS)
 for (peak in 1:N_PEAKS){
-    buff <- scan(fc,sep=" ",what=integer(),nlines=(N_FEATURES+1))
+    buff <- scan(fc,sep=" ",what=numeric(),nlines=(N_FEATURES+1))
     # columns -> number of locations, rows -> number of emission variables (first one will be DNA)
     data[[peak]] <- matrix(buff,nrow=(N_FEATURES+1),byrow=T)
     }
@@ -93,12 +94,11 @@ for (iter in 1:N_ITER){
                 if (peak%%10000==0){
                     print(peak)}
                 # get the data
-                peak_data <- matrix(as.numeric(rbinom((N_FEATURES+1)*100,1,0.5)),ncol=100,nrow=N_FEATURES+1)+1
+                peak_data <- data[[peak]]
+#                peak_data <- matrix(as.numeric(rbinom((N_FEATURES+1)*100,1,0.5)),ncol=100,nrow=N_FEATURES+1)+1
                 peak_length <- ncol(peak_data)
                
                 # initialise the parameters
-                #peak_hmm <- initialise_hmm(factor_hmm,N_STATES,N_FEATURES,transition_params[[peak]],emission_params)
-                # obvs fake
                 peak_hmm <- initialise_hmm(factor_hmm,N_STATES,N_FEATURES,transition_params[[peak]],emission_params)
                 
                 # get the theta components (for DNase emissions, EM etc...)
@@ -118,7 +118,7 @@ for (iter in 1:N_ITER){
 
                 # increase the log-likelihood...
                 ll_cumulative <- ll_cumulative +theta_and_xi$"ll"
-                }
+            }
             # update the emission parameters ... the transition parameters are saved in transition_params
             emission_params <- theta_numer/theta_denom
 
@@ -133,27 +133,27 @@ for (iter in 1:N_ITER){
                 }
             ll_old <- ll
             ll.all <- c(ll.all,ll)
-            }
-            cat("EM has converged?\n")
-            plot(ll.all,type='l',xlab='Iteration',ylab='Log-likelihood')
-            browser()
-            # by the time we get here, EM has converged ... hopefully!
-
- #            posteriors <- posterior.qhmm(peak_hmm,peak_data,n_threads=2)
-            #path <- viterbi.qhmm(peak_hmm, peak_data)
- #           browser()
-
-            # on the basis of the posteriors, do we think the peak is bound? ... only do this after EM! ... iterate over peaks until convergence, then sweep through a final time to calculate the posteriors!
-            #posteriors <- matrix(c(runif(peak_length*N_STATES)),nrow=peak_length,ncol=N_STATES)         # for now!
- #           bound_yn <- is_bound(posteriors[,2])
- #           all_peaks_bound[peak] <- bound_yn
-            
-        binding_temp[,factor] <- all_peaks_bound
         }
+        cat("EM has converged?\n")
+        plot(ll.all,type='l',xlab='Iteration',ylab='Log-likelihood')
+        browser()
+
+        # now we have to check if it's bound or not...
+        for (peak in 1:N_PEAKS){
+            peak_hmm <- initialise_hmm(factor_hmm,N_STATES,N_FEATURES,transition_params[[peak]],emission_params)
+            posteriors <- posterior.qhmm(peak_hmm,peak_data,n_threads=2)
+            bound_yn <- is_bound(posteriors[,2])
+            all_peaks_bound[peak] <- bound_yn
+            print(bound_yn)
+            }
+
+        #path <- viterbi.qhmm(peak_hmm, peak_data)
+        binding_temp[,factor] <- all_peaks_bound
+    }
     binding_status <- binding_temp
     # for the purpose of somehow gauging if convergence is occurring
     visualise_binding(binding_status)
-    }
+}
 
 # ---- After iteration: retrieve predictions ---- #
 # This depends on how I'm storing the data, but basically need a prediction from each TF for each location, maybe whatever else.
