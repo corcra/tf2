@@ -2,16 +2,12 @@
 
 Data processing:
     - what features to use? (what window size to take?)
-    - functions to obtain these
-    - isolate corresponding DNA sequence, recode
+    - functions to obtain these (nontrivial!)
     - get other-TF-binding from ChIP-seq, hardcode it in for now
 
 EM implementation:
-    - move the binding calculation outside the EM loop
-    - calculate the thetas after the peak loop
-    - implement intelligent parameter-passing to the peak-specific HMMs
-    - in fact, just remember peak-specific transitions!
     - wrap more things in functions? wrap everything in functions
+    - there is something peculiar going on - the likelihood is occasionally decreasing... it seems to be 'converging' to something (pretty rapidly actually!) but the fluctuations around this point are suspiciously high, so my convergence threshold is not often reached
 
 Optimisation:
     - parallelise?
@@ -19,3 +15,10 @@ Optimisation:
 Testing:
     - create positive test set from ChIP-seq
     - test on DNA alone, with interactions
+
+Done (since this list was started):
+    - isolate corresponding DNA sequence, recode
+    - move the binding calculation outside the EM loop
+    - calculate the thetas after the peak loop
+    - implement intelligent parameter-passing to the peak-specific HMMs
+    - in fact, just remember peak-specific transitions!
