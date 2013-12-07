@@ -1,30 +1,33 @@
 # Transcription factor binding site identification! Including interactions!
 
+# ---- Constants! ---- #
+FACTORS <- c('f_one','f_two','f_three','f_four','f_five')
+N_FACTORS <- length(FACTORS)
+#N_PEAKS <- 112025
+N_PEAKS <- 10
+N_ITER <- 5
+# DNase features
+N_FEATURES <- 0
+THRESHOLD <- 0.01
+
 # ---- Load functions! ---- #
 source('wtf_fns.r')
 library(rqhmm)
 
-# ---- Load Data! ---- #
-# DNase-I signal                            # does it make sense to have a peak class?
-# DNA sequence
-# PWM for TF(s)
-#
-# Ideas about peak class for DNAse-I signal!
-# Do we need to do it peak by peak?
-# Maybe maintain list of peak boundaries, then access the data as necessary.
-# Array: LOC BASE [Dnase vars] ...?
-
-# ---- Constants! ---- #
-FACTORS <- c('f_one','f_two','f_three','f_four','f_five')
-N_FACTORS <- length(FACTORS)
-N_PEAKS <- 20
-N_ITER <- 5
-# how many features from DNAse will we take... (I'll be defining these somehow!)
-N_FEATURES <- 4
-THRESHOLD <- 0.01
-
 # ---- Process the DNase-1 data! ---- #
+# thinking I'll preprocess this...
 #DNase_emissions <- get_features(DNase_data)
+
+# ---- Load Data! ---- #
+fc <- file('processed_data.gz',open='r')
+data <- vector("list",N_PEAKS)
+for (peak in 1:N_PEAKS){
+    buff <- scan(fc,sep=" ",what=integer(),nlines=(N_FEATURES+1))
+    # columns -> number of locations, rows -> number of emission variables (first one will be DNA)
+    data[[peak]] <- matrix(buff,nrow=(N_FEATURES+1),byrow=T)
+    }
+close(fc)
+cat("Data loaded!\n")
 
 # ---- Initialise binding status ---- #
 # Will need to get this from ChIP-seq data once I pick a test TF.
@@ -40,8 +43,7 @@ transition_params <- vector("list",N_PEAKS)
 for (peak in 1:N_PEAKS){
     transition_params[[peak]]<- list(B=c(0.8,0.1,0.1),G=c(0.5,0.5))
     }
-# set up initial emission params... what should I choose here?
-emission_params <- matrix(runif(N_STATES*N_FEATURES),nrow=N_STATES,ncol=N_FEATURES)
+
 # record the a_BFs for each peak, too
 all_a_BFs <- vector("numeric",N_PEAKS)
 
@@ -56,6 +58,10 @@ for (iter in 1:N_ITER){
         pwm <- get_motif(factor)
         factor_size <- ncol(pwm)
         N_STATES <- factor_size+2
+ 
+        # set up initial emission params... what should I choose here?
+        # have to do this after the factor is known...
+        emission_params <- matrix(runif(N_STATES*N_FEATURES),nrow=N_STATES,ncol=N_FEATURES)
 
         # initialise a blank hmm with the right size... and fixed variables
         factor_hmm <- build_hmm(N_STATES,N_FEATURES,pwm)
@@ -70,11 +76,12 @@ for (iter in 1:N_ITER){
         delta_ll <- THRESHOLD*2
         ll_old <- -Inf
         EM.iter <- 0
+        ll.all <- vector()
 
 # ---- Second middle loop: EM! ---- #
-        while(delta_ll>THRESHOLD){
+        while(abs(delta_ll)>THRESHOLD){
             EM.iter <- EM.iter + 1
-            cat("Iter",EM.iter,"\n")
+            cat("EM iteration",EM.iter,"\n")
             theta_denom <- rep(0,N_STATES)
             # theta_numer is the numerator of theta, basically, gamma*X at each point... but there are N_FEATURES Xes remember! _-> hence this is a matrix _-> hence this is a matrix _-> hence this is a matrix _-> hence this is a matrix
             theta_numer <- matrix(rep(0,N_STATES*N_FEATURES),nrow=N_STATES,ncol=N_FEATURES)
@@ -83,6 +90,8 @@ for (iter in 1:N_ITER){
             ll_cumulative <- 0
     # ---- Inner loop: iterate over peaks! ---- #
             for (peak in 1:N_PEAKS){
+                if (peak%%10000==0){
+                    print(peak)}
                 # get the data
                 peak_data <- matrix(as.numeric(rbinom((N_FEATURES+1)*100,1,0.5)),ncol=100,nrow=N_FEATURES+1)+1
                 peak_length <- ncol(peak_data)
@@ -119,11 +128,15 @@ for (iter in 1:N_ITER){
             print(ll)
             if(delta_ll<0){
                 cat("ERROR: likelihood is decreasing! Check yo EM!\n")
-                browser()
+                print(delta_ll)
+#                browser()
                 }
             ll_old <- ll
+            ll.all <- c(ll.all,ll)
             }
             cat("EM has converged?\n")
+            plot(ll.all,type='l',xlab='Iteration',ylab='Log-likelihood')
+            browser()
             # by the time we get here, EM has converged ... hopefully!
 
  #            posteriors <- posterior.qhmm(peak_hmm,peak_data,n_threads=2)
