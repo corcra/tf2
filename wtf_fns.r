@@ -65,8 +65,13 @@ initialise_hmm<-function(hmm,N_STATES,N_FEATURES,transition_params,emission_para
     set.initial.probs.qhmm(hmm,c(1,rep(0,(N_STATES-1))))
 
     # transitions ... the only non-fixed ones are from B and G, we give these as input!
-    set.transition.params.qhmm(hmm,1,transition_params$B)
-    set.transition.params.qhmm(hmm,N_STATES,transition_params$G)
+    if (sum(is.nan(transition_params$G))==0){
+        set.transition.params.qhmm(hmm,1,transition_params$B)
+        set.transition.params.qhmm(hmm,N_STATES,transition_params$G)
+    }
+    else{
+        browser()
+    }
 
     # emissions (DNAse)
     for (state in 1:N_STATES){
@@ -119,29 +124,25 @@ get_emission_prob<-function(hmm,peak_data,peak_length,state,N_FEATURES){
         probs<-probs*emission_probs[peak_data[slot_num,2:peak_length]]
         }
     return(probs)
-    }
+}
 
 get_new_transition_params <- function(theta_and_xi,a_BF){
     # when I say xi, i really mean the summed form
     # translate these to transition probabilities!
     norm_B <- theta_and_xi$"xi_BB"+theta_and_xi$"xi_BG"
     norm_G <- theta_and_xi$"xi_GB"+theta_and_xi$"xi_GG"
-    if (norm_B>0){
-        a_BB <- (1-a_BF)*theta_and_xi$"xi_BB"/norm_B
-        a_BG <- (1-a_BF)*theta_and_xi$"xi_BG"/norm_B
-    }
-    else{
-        a_BB <- 0
-        a_BG <- 0
-    }
-    if (norm_G>0){
-        a_GB <- theta_and_xi$"xi_GB"/norm_G
-        a_GG <- theta_and_xi$"xi_GG"/norm_G
-    }
-    else{
-        a_GB <- 0
-        a_GG <- 0
-    }
+    if (norm_B==0|norm_G==0){
+        print('wtf')
+        browser()
+        }
+    a_BB <- (1-a_BF)*theta_and_xi$"xi_BB"/norm_B
+    a_BG <- (1-a_BF)*theta_and_xi$"xi_BG"/norm_B
+    a_GB <- theta_and_xi$"xi_GB"/norm_G
+    a_GG <- theta_and_xi$"xi_GG"/norm_G
+   
+    if(!sum(is.na(c(a_BB,a_BG,a_GB,a_GG)))==0){
+        browser()
+        }
     return(list(B=c(a_BB,a_BF,a_BG),G=c(a_GB,a_GG)))
 }
 
