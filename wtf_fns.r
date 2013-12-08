@@ -124,7 +124,7 @@ get_emission_prob<-function(hmm,peak_data,peak_length,state,N_FEATURES){
 get_new_transition_params <- function(theta_and_xi,a_BF){
     # when I say xi, i really mean the summed form
     # translate these to transition probabilities!
-    norm_B <- theta_and_xi$"xi_BB"+theta_and_xi$"xi"
+    norm_B <- theta_and_xi$"xi_BB"+theta_and_xi$"xi_BG"
     norm_G <- theta_and_xi$"xi_GB"+theta_and_xi$"xi_GG"
     if (norm_B>0){
         a_BB <- (1-a_BF)*theta_and_xi$"xi_BB"/norm_B
