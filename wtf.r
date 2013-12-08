@@ -8,8 +8,7 @@ N_PEAKS <- 100
 N_ITER <- 5
 # DNase features
 N_FEATURES <- 1
-# i know this threshold is crazy high
-THRESHOLD <- 0.5
+THRESHOLD <- 1
 
 # ---- Load functions! ---- #
 source('wtf_fns.r')
