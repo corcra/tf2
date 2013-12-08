@@ -96,7 +96,7 @@ get_interactions<-function(factor,binding_status){
 # turn this into a matrix, and pass it back
         coincidence_mat<-matrix(c(if_no,if_yes),nrow=(N_FACTORS-1),ncol=2)
 # remove the NaNs... they should be zeroes anyway!
-        coincidence_mat[is.nan(coincidence_mat)]=0
+        coincidence_mat[is.nan(coincidence_mat)]<-0
         return(coincidence_mat)
 }
 
@@ -124,13 +124,26 @@ get_emission_prob<-function(hmm,peak_data,peak_length,state,N_FEATURES){
 get_new_transition_params <- function(theta_and_xi,a_BF){
     # when I say xi, i really mean the summed form
     # translate these to transition probabilities!
-    a_BB <- (1-a_BF)*theta_and_xi$"xi_BB"/(theta_and_xi$"xi_BB"+theta_and_xi$"xi_BG")
-    a_BG <- (1-a_BF)*theta_and_xi$"xi_BG"/(theta_and_xi$"xi_BB"+theta_and_xi$"xi_BG")
-    a_GB <- theta_and_xi$"xi_GB"/(theta_and_xi$"xi_GB"+theta_and_xi$"xi_GG")
-    a_GG <- theta_and_xi$"xi_GG"/(theta_and_xi$"xi_GB"+theta_and_xi$"xi_GG")
-    return(list(B=c(a_BB,a_BF,a_BG),G=c(a_GB,a_GG)))
+    norm_B <- theta_and_xi$"xi_BB"+theta_and_xi$"xi"
+    norm_G <- theta_and_xi$"xi_GB"+theta_and_xi$"xi_GG"
+    if (norm_B>0){
+        a_BB <- (1-a_BF)*theta_and_xi$"xi_BB"/norm_B
+        a_BG <- (1-a_BF)*theta_and_xi$"xi_BG"/norm_B
     }
-
+    else{
+        a_BB <- 0
+        a_BG <- 0
+    }
+    if (norm_G>0){
+        a_GB <- theta_and_xi$"xi_GB"/norm_G
+        a_GG <- theta_and_xi$"xi_GG"/norm_G
+    }
+    else{
+        a_GB <- 0
+        a_GG <- 0
+    }
+    return(list(B=c(a_BB,a_BF,a_BG),G=c(a_GB,a_GG)))
+}
 
 get_theta_and_xi<-function(hmm,peak_data,peak_length,N_STATES,N_FEATURES){
     # each ROW of this corresponds to a different state
