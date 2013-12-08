@@ -33,6 +33,9 @@ for (peak in 1:N_PEAKS){
     buff <- scan(fc,sep=" ",what=numeric(),nlines=(N_FEATURES+1))
     # columns -> number of locations, rows -> number of emission variables (first one will be DNA)
     data[[peak]] <- matrix(buff,nrow=(N_FEATURES+1),byrow=T)
+    len<-ncol(data[[peak]])
+    #data[[peak]][2,] <- rbinom(len,1,0.5)+1
+    data[[peak]][2,] <- seq(len)%%2+1
     }
 close(fc)
 cat("Data loaded!\n")
@@ -113,6 +116,15 @@ for (iter in 1:N_ITER){
                     print(peak)
                 }
                 peak_data <- data[[peak]]
+                if(mean(peak_data[2,]==1)==1){
+                    print("all 1s...")
+                    browser()
+                    }
+                if(mean(peak_data[2,]==2)==1){
+                    print("all 2s...")
+                    browser()
+                    }
+ 
                 peak_length <- ncol(peak_data)
                
                 # initialise the parameters
@@ -130,7 +142,11 @@ for (iter in 1:N_ITER){
                 # incease the theta counts ... will collect all of these at the end of the peak loop
                 theta_numer <- theta_numer + theta$"theta_numer"
                 theta_denom <- theta_denom + theta$"theta_denom"
-
+    
+                if(sum(theta_numer==theta_denom)>0){
+                    print('theta_num is the same as theta_denom somewhere?')
+                    browser()
+                }
                 # save the transition parameters for this peak (we will use these next time)
                 # note! this includes getting the interaction part!
                 transition_params[[factor]][[peak]] <- get_new_transition_params(peak,peak_length,factor,factor_size,binding_status,coincidence,gamma_and_xi)
