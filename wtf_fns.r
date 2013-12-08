@@ -77,6 +77,9 @@ initialise_hmm<-function(hmm,N_STATES,N_FEATURES,transition_params,emission_para
     for (state in 1:N_STATES){
         for (feature in 1:N_FEATURES){
             theta <- emission_params[state,feature]
+            if(theta==0){
+                browser()
+                }
             set.emission.params.qhmm(hmm, state, c(1-theta,theta),slot=(feature+1))
             }
         }
@@ -105,14 +108,14 @@ get_interactions<-function(factor,binding_status){
         return(coincidence_mat)
 }
 
-get_a_BF<-function(peak,peak_length,factor,factor_size,binding_status,coincidence){
+get_C_int<-function(peak,peak_length,factor,factor_size,binding_status,coincidence){
 # get the peak-specific bound status, excluding current factor
     peak_bound_status<-as.numeric(binding_status[peak,!colnames(binding_status)==factor])
 # translate this into a matrix of indices to query the coincidence matrix - the query will produce a vector of the relevant elements of the coincidence matrix depending on whether or not the factor is actully bound in this peak!
         relevant_indices<-matrix(c(seq(N_FACTORS-1),peak_bound_status+1),(N_FACTORS-1),2)
 # some normalisation, sum over aforementioned vector...
-        a_BF <- (1.0/((peak_length-factor_size)*(N_FACTORS-1)))*sum(coincidence[relevant_indices])
-        return(a_BF)
+        C_int <- (1.0/((peak_length-factor_size)*(N_FACTORS-1)))*sum(coincidence[relevant_indices])
+        return(C_int)
 }
 
 get_emission_prob<-function(hmm,peak_data,peak_length,state,N_FEATURES){
@@ -126,17 +129,18 @@ get_emission_prob<-function(hmm,peak_data,peak_length,state,N_FEATURES){
     return(probs)
 }
 
-get_new_transition_params <- function(theta_and_xi,a_BF){
+get_new_transition_params <- function(theta_and_xi,C_int){
     # when I say xi, i really mean the summed form
     # translate these to transition probabilities!
-    norm_B <- theta_and_xi$"xi_BB"+theta_and_xi$"xi_BG"
+    norm_B <- theta_and_xi$"xi_BB"+theta_and_xi$"xi_BF"+theta_and_xi$"xi_BG"
     norm_G <- theta_and_xi$"xi_GB"+theta_and_xi$"xi_GG"
     if (norm_B==0|norm_G==0){
         print('wtf')
         browser()
         }
-    a_BB <- (1-a_BF)*theta_and_xi$"xi_BB"/norm_B
-    a_BG <- (1-a_BF)*theta_and_xi$"xi_BG"/norm_B
+    a_BB <- (1-C_int)*theta_and_xi$"xi_BB"/norm_B
+    a_BF <- (1-C_int)*theta_and_xi$"xi_BF"/norm_B + C_int
+    a_BG <- (1-C_int)*theta_and_xi$"xi_BG"/norm_B
     a_GB <- theta_and_xi$"xi_GB"/norm_G
     a_GG <- theta_and_xi$"xi_GG"/norm_G
    
@@ -169,24 +173,31 @@ get_theta_and_xi<-function(hmm,peak_data,peak_length,N_STATES,N_FEATURES){
         }
 
     # XI !
-    # Note: only care about xi_BB, xi_BG, xi_GB, and xi_GG, so can do these separately...
+    # Note: only care about xi_BB, (xi_BF), xi_BG, xi_GB, and xi_GG, so can do these separately...
     # Will be needing the likelihood of the data given G and B...
     emissions_B <- get_emission_prob(hmm,peak_data,peak_length,1,N_FEATURES)
+    emissions_F <- get_emission_prob(hmm,peak_data,peak_length,2,N_FEATURES)
     emissions_G <- get_emission_prob(hmm,peak_data,peak_length,N_STATES,N_FEATURES)
     a_BB <- get.transition.params.qhmm(hmm,1)[1]
+    a_BF <- get.transition.params.qhmm(hmm,1)[2]
     # remember, B can only transition to B,F,G
     a_BG <- get.transition.params.qhmm(hmm,1)[3]
     # G can only transition to B,G
-    a_GG <- get.transition.params.qhmm(hmm,N_STATES)[2]
     a_GB <- get.transition.params.qhmm(hmm,N_STATES)[1]
+    a_GG <- get.transition.params.qhmm(hmm,N_STATES)[2]
 
     # the B state is the first row!
     xi_BB <- sum(exp(alpha_prime[1,1:(peak_length-1)]+beta_prime[1,2:peak_length]+log(emissions_B)+log(a_BB)-ll))
+    xi_BF <- sum(exp(alpha_prime[1,1:(peak_length-1)]+beta_prime[2,2:peak_length]+log(emissions_F)+log(a_BF)-ll))
     xi_BG <- sum(exp(alpha_prime[1,1:(peak_length-1)]+beta_prime[N_STATES,2:peak_length]+log(emissions_G)+log(a_BG)-ll))
     xi_GB <- sum(exp(alpha_prime[N_STATES,1:(peak_length-1)]+beta_prime[1,2:peak_length]+log(emissions_B)+log(a_GB)-ll))
     xi_GG <- sum(exp(alpha_prime[N_STATES,1:(peak_length-1)]+beta_prime[N_STATES,2:peak_length]+log(emissions_G)+log(a_GG)-ll))
 
-    return(list("theta_numer"=theta_numer,"theta_denom"=theta_denom,"xi_BB"=xi_BB,"xi_BG"=xi_BG,"xi_GB"=xi_GB,"xi_GG"=xi_GG,"ll"=ll))
+    if(!sum(is.finite(c(xi_BB,xi_BG,xi_GB,xi_GG)))==4){
+        browser()
+        }
+
+    return(list("theta_numer"=theta_numer,"theta_denom"=theta_denom,"xi_BB"=xi_BB,"xi_BG"=xi_BG,"xi_BF"=xi_BF,"xi_GB"=xi_GB,"xi_GG"=xi_GG,"ll"=ll))
 }
 
 visualise_binding<-function(binding_status){
