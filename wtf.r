@@ -11,6 +11,7 @@ N_FEATURES <- 1
 THRESHOLD <- 1
 
 # ---- Load functions! ---- #
+source('wtf_fns_ok.r')
 source('wtf_fns.r')
 source('wtf_features.r')
 library(rqhmm)
@@ -105,10 +106,12 @@ for (iter in 1:N_ITER){
 
             # ll over the peaks
             ll_cumulative <- 0
+            test_gamma <- rep(0,N_STATES)
             # ---- Inner loop: iterate over peaks! ---- #
             for (peak in 1:N_PEAKS){
                 if (peak%%10000==0){
-                    print(peak)}
+                    print(peak)
+                }
                 peak_data <- data[[peak]]
                 peak_length <- ncol(peak_data)
                
@@ -120,26 +123,40 @@ for (iter in 1:N_ITER){
                 # get the theta components (for DNase emissions, EM etc...)
                 # also get the xis! (for transitions)
                 # makes sense to do these at once because they both use the results from forward-backward
-                theta_and_xi <- get_theta_and_xi(factor_hmm,peak_data,peak_length,N_STATES,N_FEATURES)
+                gamma_and_xi <- get_gamma_and_xi(factor_hmm,peak_data,peak_length,N_STATES,N_FEATURES)
+
+                test_gamma <- test_gamma + rowSums(gamma_and_xi$"gamma")
+                theta <- get_theta(gamma_and_xi$"gamma",peak_data,N_STATES,N_FEATURES)
+                # incease the theta counts ... will collect all of these at the end of the peak loop
+                theta_numer <- theta_numer + theta$"theta_numer"
+                theta_denom <- theta_denom + theta$"theta_denom"
 
                 # save the transition parameters for this peak (we will use these next time)
                 # note! this includes getting the interaction part!
-                transition_params[[factor]][[peak]] <- get_new_transition_params(peak,peak_length,factor,factor_size,binding_status,coincidence,theta_and_xi)
-
-                # incease the theta counts ... will collect all of these at the end of the peak loop
-                theta_numer <- theta_numer + theta_and_xi$"theta_numer"
-                theta_denom <- theta_denom + theta_and_xi$"theta_denom"
+                transition_params[[factor]][[peak]] <- get_new_transition_params(peak,peak_length,factor,factor_size,binding_status,coincidence,gamma_and_xi)
 
                 # increase the log-likelihood...
-                ll_cumulative <- ll_cumulative +theta_and_xi$"ll"
+                ll_cumulative <- ll_cumulative + gamma_and_xi$"ll"
             }
             # update the emission parameters ... the transition parameters are saved in transition_params
             if(sum(theta_denom==0)>0){
                 print("have zeroes in theta_denom!")
                 browser()
-                }
-            emission_params[[factor]] <- theta_numer/theta_denom
+            }
+            if(sum(theta_numer==0)>0){
+                print("have zeroes in theta_numer!")
+                browser()
+            }
+            for (state in 1:N_STATES){
+                emission_params[[factor]][state,] <- theta_numer[state]/theta_denom[state]
+            }
+# 'smart' way of doing this
+#            emission_params[[factor]] <- theta_numer/theta_denom
             emission_params[[factor]][is.nan(emission_params[[factor]])] <- 0
+            if(sum(emission_params[[factor]]==1)>0){
+                print('grr')
+                browser()
+            }
 
             # check how the likelihood has changed...
             ll <- ll_cumulative
@@ -149,7 +166,7 @@ for (iter in 1:N_ITER){
                 cat("ERROR: likelihood is decreasing! Check yo EM!\n")
                 print(delta_ll)
 #                browser()
-                }
+            }
             ll_old <- ll
             ll.all <- c(ll.all,ll)
         }
