@@ -4,7 +4,7 @@
 FACTORS <- c('f_one','f_two','f_three','f_four','f_five')
 N_FACTORS <- length(FACTORS)
 #N_PEAKS <- 112025
-N_PEAKS <- 100
+N_PEAKS <- 20
 N_ITER <- 5
 # DNase features
 N_FEATURES <- 1
@@ -43,31 +43,38 @@ binding_temp<-matrix(rep(0,(N_PEAKS*N_FACTORS)),nrow=N_PEAKS,ncol=N_FACTORS)
 colnames(binding_status)<-FACTORS
 colnames(binding_temp)<-FACTORS
 
-# ---- Initialise parameters! ---- #
-# note here: this is a list... one set of parameters for each peak!
-transition_params <- vector("list",N_PEAKS)
-# set up initial values
-for (peak in 1:N_PEAKS){
-    transition_params[[peak]]<- list(B=c(0.8,0.1,0.1),G=c(0.5,0.5))
+# ---- Initialise parameters! ---- # These are all per-factor! Hence lists!
+# this is also per-peak -> hence nested lists (ugh)
+transition_params <- vector("list")
+for (factor in FACTORS){
+    transition_params[[factor]] <- vector("list")
+    for (peak in 1:N_PEAKS){
+        transition_params[[factor]][[peak]] <- list(B=c(0.4,0.2,0.4),G=c(0.5,0.5))
     }
-# will store the emission_params here, roughly speaking
-emission_params <- vector("list",N_FACTORS)
+}
 
+emission_params <- vector("list")
+
+motifs<-vector("list")
+for (factor in FACTORS){
+    motifs[[factor]]<-get_motif(factor)
+}
+
+# for testing: only looping over one TF
+TEST_FACTORS<-"f_one"
 # ---- The outer loop: 'sample' over binding states ---- #
 for (iter in 1:N_ITER){
     cat('Iteration',iter,'\n')
-# ---- Middle loop: iterate over each factor! ---- #
-    for (factor in FACTORS){
+    # ---- Middle loop: iterate over each factor! ---- #
+    for (factor in TEST_FACTORS){
         cat('Getting binding status for',factor,'\n')
 
         # get the motif
-        pwm <- get_motif(factor)
+        pwm <- motifs[[factor]]
         factor_size <- ncol(pwm)
         N_STATES <- factor_size+2
- 
-        # set up initial emission params... what should I choose here?
-        # have to do this after the factor is known...
-        # is this really what we want?
+
+        # initialise emission parameters for this factor
         if (!exists(paste("emission_params[[",factor,"]]",sep=""))){
             print(paste("no emission parameters saved for",factor,"- making some up!"))
             emission_params[[factor]] <- matrix(runif(N_STATES*N_FEATURES),nrow=N_STATES,ncol=N_FEATURES)
@@ -86,9 +93,9 @@ for (iter in 1:N_ITER){
         delta_ll <- THRESHOLD*2
         ll_old <- -Inf
         EM.iter <- 0
-        ll.all <- vector()
+        ll.all <- vector("numeric")
 
-# ---- Second middle loop: EM! ---- #
+        # ---- Second middle loop: EM! ---- #
         while(abs(delta_ll)>THRESHOLD){
             EM.iter <- EM.iter + 1
             cat("EM iteration",EM.iter,"\n")
@@ -98,17 +105,17 @@ for (iter in 1:N_ITER){
 
             # ll over the peaks
             ll_cumulative <- 0
-    # ---- Inner loop: iterate over peaks! ---- #
+            # ---- Inner loop: iterate over peaks! ---- #
             for (peak in 1:N_PEAKS){
                 if (peak%%10000==0){
                     print(peak)}
-                # get the data
                 peak_data <- data[[peak]]
-#                peak_data <- matrix(as.numeric(rbinom((N_FEATURES+1)*100,1,0.5)),ncol=100,nrow=N_FEATURES+1)+1
                 peak_length <- ncol(peak_data)
                
                 # initialise the parameters
-                peak_hmm <- initialise_hmm(factor_hmm,N_STATES,N_FEATURES,transition_params[[peak]],emission_params[[factor]])
+                trans_param <- transition_params[[factor]][[peak]]
+                emiss_param <- emission_params[[factor]]
+                peak_hmm <- initialise_hmm(factor_hmm,N_STATES,N_FEATURES,trans_param,emiss_param)
                 
                 # get the theta components (for DNase emissions, EM etc...)
                 # also get the xis! (for transitions)
@@ -117,7 +124,7 @@ for (iter in 1:N_ITER){
 
                 # save the transition parameters for this peak (we will use these next time)
                 # note! this includes getting the interaction part!
-                transition_params[[peak]] <- get_new_transition_params(peak,peak_length,factor,factor_size,binding_status,coincidence,theta_and_xi)
+                transition_params[[factor]][[peak]] <- get_new_transition_params(peak,peak_length,factor,factor_size,binding_status,coincidence,theta_and_xi)
 
                 # incease the theta counts ... will collect all of these at the end of the peak loop
                 theta_numer <- theta_numer + theta_and_xi$"theta_numer"
@@ -127,6 +134,10 @@ for (iter in 1:N_ITER){
                 ll_cumulative <- ll_cumulative +theta_and_xi$"ll"
             }
             # update the emission parameters ... the transition parameters are saved in transition_params
+            if(sum(theta_denom==0)>0){
+                print("have zeroes in theta_denom!")
+                browser()
+                }
             emission_params[[factor]] <- theta_numer/theta_denom
             emission_params[[factor]][is.nan(emission_params[[factor]])] <- 0
 
@@ -144,11 +155,12 @@ for (iter in 1:N_ITER){
         }
         cat("EM has converged?\n")
         plot(ll.all,type='l',xlab='Iteration',ylab='Log-likelihood')
-        browser()
 
         # now we have to check if it's bound or not...
         for (peak in 1:N_PEAKS){
-            peak_hmm <- initialise_hmm(factor_hmm,N_STATES,N_FEATURES,transition_params[[peak]],emission_params[[factor]])
+            trans_param <- transition_params[[factor]][[peak]]
+            emiss_param <- emission_params[[factor]]
+            peak_hmm <- initialise_hmm(factor_hmm,N_STATES,N_FEATURES,trans_param,emiss_param)
             posteriors <- posterior.qhmm(peak_hmm,peak_data,n_threads=2)
             bound_yn <- is_bound(posteriors[,2])
             all_peaks_bound[peak] <- bound_yn
