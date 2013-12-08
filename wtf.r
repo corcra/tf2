@@ -50,9 +50,7 @@ transition_params <- vector("list",N_PEAKS)
 for (peak in 1:N_PEAKS){
     transition_params[[peak]]<- list(B=c(0.8,0.1,0.1),G=c(0.5,0.5))
     }
-
-# record the a_BFs for each peak, too
-all_a_BFs <- vector("numeric",N_PEAKS)
+# will store the emission_params here, roughly speaking
 emission_params <- vector("list",N_FACTORS)
 
 # ---- The outer loop: 'sample' over binding states ---- #
@@ -116,11 +114,11 @@ for (iter in 1:N_ITER){
                 # makes sense to do these at once because they both use the results from forward-backward
                 theta_and_xi <- get_theta_and_xi(factor_hmm,peak_data,peak_length,N_STATES,N_FEATURES)
 
-                # get a_BF!
-                a_BF <- get_a_BF(peak,peak_length,factor,factor_size,binding_status,coincidence)
+                # get C_int
+                C_int <- get_C_int(peak,peak_length,factor,factor_size,binding_status,coincidence)
  
                 # save the transition parameters for this peak (we will use these next time)
-                transition_params[[peak]] <- get_new_transition_params(theta_and_xi,a_BF)
+                transition_params[[peak]] <- get_new_transition_params(theta_and_xi,C_int)
 
                 # incease the theta counts ... will collect all of these at the end of the peak loop
                 theta_numer <- theta_numer + theta_and_xi$"theta_numer"
