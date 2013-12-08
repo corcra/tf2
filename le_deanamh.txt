@@ -16,9 +16,13 @@ Testing:
     - create positive test set from ChIP-seq
     - test on DNA alone, with interactions
 
+Conceptual issues:
+    - ???
+
 Done (since this list was started):
     - isolate corresponding DNA sequence, recode
     - move the binding calculation outside the EM loop
     - calculate the thetas after the peak loop
     - implement intelligent parameter-passing to the peak-specific HMMs
     - in fact, just remember peak-specific transitions!
+    - the current method of obtaining a_BF has BAD PROPERTIES! once a factor isn't bound anywhere, it can't become bound!
