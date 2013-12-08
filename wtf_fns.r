@@ -77,7 +77,8 @@ initialise_hmm<-function(hmm,N_STATES,N_FEATURES,transition_params,emission_para
     for (state in 1:N_STATES){
         for (feature in 1:N_FEATURES){
             theta <- emission_params[state,feature]
-            if(theta==0){
+            if(theta==0|theta==1){
+                print("we're about to get an emission probability of zero...")
                 browser()
                 }
             set.emission.params.qhmm(hmm, state, c(1-theta,theta),slot=(feature+1))
@@ -112,10 +113,10 @@ get_C_int<-function(peak,peak_length,factor,factor_size,binding_status,coinciden
 # get the peak-specific bound status, excluding current factor
     peak_bound_status<-as.numeric(binding_status[peak,!colnames(binding_status)==factor])
 # translate this into a matrix of indices to query the coincidence matrix - the query will produce a vector of the relevant elements of the coincidence matrix depending on whether or not the factor is actully bound in this peak!
-        relevant_indices<-matrix(c(seq(N_FACTORS-1),peak_bound_status+1),(N_FACTORS-1),2)
+    relevant_indices<-matrix(c(seq(N_FACTORS-1),peak_bound_status+1),(N_FACTORS-1),2)
 # some normalisation, sum over aforementioned vector...
-        C_int <- (1.0/((peak_length-factor_size)*(N_FACTORS-1)))*sum(coincidence[relevant_indices])
-        return(C_int)
+    C_int <- (1.0/((peak_length-factor_size)*(N_FACTORS-1)))*sum(coincidence[relevant_indices])
+    return(C_int)
 }
 
 get_emission_prob<-function(hmm,peak_data,peak_length,state,N_FEATURES){
@@ -129,7 +130,10 @@ get_emission_prob<-function(hmm,peak_data,peak_length,state,N_FEATURES){
     return(probs)
 }
 
-get_new_transition_params <- function(theta_and_xi,C_int){
+get_new_transition_params <- function(peak,peak_length,factor,factor_size,binding_status,coincidence,theta_and_xi){
+    # get the interaction modifier
+    C_int <- get_C_int(peak,peak_length,factor,factor_size,binding_status,coincidence)
+
     # when I say xi, i really mean the summed form
     # translate these to transition probabilities!
     norm_B <- theta_and_xi$"xi_BB"+theta_and_xi$"xi_BF"+theta_and_xi$"xi_BG"
