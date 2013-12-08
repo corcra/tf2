@@ -69,6 +69,7 @@ for (iter in 1:N_ITER){
         # have to do this after the factor is known...
         # is this really what we want?
         if (!exists(paste("emission_params[[",factor,"]]",sep=""))){
+            print(paste("no emission parameters saved for",factor,"- making some up!"))
             emission_params[[factor]] <- matrix(runif(N_STATES*N_FEATURES),nrow=N_STATES,ncol=N_FEATURES)
             }
 
@@ -114,11 +115,9 @@ for (iter in 1:N_ITER){
                 # makes sense to do these at once because they both use the results from forward-backward
                 theta_and_xi <- get_theta_and_xi(factor_hmm,peak_data,peak_length,N_STATES,N_FEATURES)
 
-                # get C_int
-                C_int <- get_C_int(peak,peak_length,factor,factor_size,binding_status,coincidence)
- 
                 # save the transition parameters for this peak (we will use these next time)
-                transition_params[[peak]] <- get_new_transition_params(theta_and_xi,C_int)
+                # note! this includes getting the interaction part!
+                transition_params[[peak]] <- get_new_transition_params(peak,peak_length,factor,factor_size,binding_status,coincidence,theta_and_xi)
 
                 # incease the theta counts ... will collect all of these at the end of the peak loop
                 theta_numer <- theta_numer + theta_and_xi$"theta_numer"
