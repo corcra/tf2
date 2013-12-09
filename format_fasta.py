@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# All this does is rewrite a fasta file so that the whole sequence is on one line, there's no identifier (perhaps dubious, might change this) and recoding ACGT -> 1234 (for use in the HMM later!)
 
 import gzip
 import sys
