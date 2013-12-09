@@ -37,8 +37,8 @@ def get_flanks(i,buffer,WIN_EDGE):
     flanks = ' '.join(flank_list)
     return flanks
 
-def process_peak(peak_start,peak_end,buffer,outfile,new_peaks_file):
-    # what we have: one line per location (good!), with CHR LOC VAL
+def process_peak(peak_num,peak_start,peak_end,buffer,outfile,new_peaks_file):
+    # what we have: one line per location (good!), with CHR LOC VAL PEAK_NUM
     # peak_end is the last location in the peak, not the upper bound
     peak_length = peak_end-peak_start+1
     buffer_length = len(buffer)
@@ -50,7 +50,7 @@ def process_peak(peak_start,peak_end,buffer,outfile,new_peaks_file):
         if in_range(int(loc),peak_start,peak_end):
             peak_total = peak_total + float(val)
             flanks = get_flanks(i,buffer,WIN_EDGE)
-            loc_line = chr+' '+str(loc)+' '+flanks+'\n'
+            loc_line = chr+' '+str(loc)+' '+str(peak_num)+' '+flanks+'\n'
             outfile.write(loc_line)
     new_peaks_file.write(chr+'\t'+str(peak_start)+'\t'+str(peak_end)+'\t'+str(peak_total)+'\n') 
 
@@ -66,6 +66,7 @@ first_peak = peaks_file.readline()
 peak_buffer = []
 
 line_num = 0
+peak_num = 1
 for line in bedgraph:
     # file's pretty big
     if line_num%100000==0:
@@ -85,8 +86,9 @@ for line in bedgraph:
             peak_buffer.append(temp_line)
     else:
         if len(peak_buffer)>0:
-            process_peak(peak_start,peak_end,peak_buffer,out_file,new_peaks_file)
+            process_peak(peak_num,peak_start,peak_end,peak_buffer,out_file,new_peaks_file)
             peak_buffer = []
+            peak_num = peak_num + 1
         if end>peak_end:
             # get a new peak
             new_peak = peaks_file.readline()
