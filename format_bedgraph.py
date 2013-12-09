@@ -4,6 +4,7 @@
 # N is the size of the window around LOC, and DNASE_i are the DNASE values corresponding the window locations
 # The output of this script shall be the input to the feature extraction part of the larger code
 import gzip
+import sys
 
 # arbitrary!
 WIN_SIZE = 25
@@ -51,12 +52,12 @@ def process_peak(peak_start,peak_end,buffer,outfile,new_peaks_file):
             flanks = get_flanks(i,buffer,WIN_EDGE)
             loc_line = chr+' '+str(loc)+' '+flanks+'\n'
             outfile.write(loc_line)
-    new_peaks_file.write(chr+' '+str(peak_start)+' '+str(peak_end)+' '+str(peak_total)+'\n') 
+    new_peaks_file.write(chr+'\t'+str(peak_start)+'\t'+str(peak_end)+'\t'+str(peak_total)+'\n') 
 
 # each line of this file contains peak range
 peaks_file = open('../k562_dnase_peaks','r')
 new_peaks_file = open('../k562_dnase_peaks_totals','w')
-bedgraph = gzip.open('../overlaps.bed.gz','r')
+bedgraph = gzip.open(sys.argv[1],'r')
 out_file = open('../dnase_in_windows','w')
 
 first_peak = peaks_file.readline()
