@@ -33,7 +33,17 @@ def get_peak_range(pre_line):
     return (start,end)
 
 def get_flanks(i,buffer,WIN_EDGE):
+# OUTSTANDING QUESTION: what to do when there is insufficient buffer to do this?
+# Also WHY is that happening?
     flank_list = [element.split()[2] for element in buffer[(i-WIN_EDGE):(i+WIN_EDGE+1)]]
+#    if not len(flank_list)==(2*WIN_EDGE+1):
+#        print buffer[(i-WIN_EDGE):(i+WIN_EDGE+1)]
+#        print WIN_EDGE
+#        print i-WIN_EDGE
+#        print buffer[i+WIN_EDGE+1]
+#        print buffer[i-WIN_EDGE]
+#        print len(flank_list)
+#        sys.exit()
     flanks = ' '.join(flank_list)
     return flanks
 
@@ -58,7 +68,7 @@ def process_peak(peak_num,peak_start,peak_end,buffer,outfile,new_peaks_file):
 peaks_file = open('../k562_dnase_peaks','r')
 new_peaks_file = open('../k562_dnase_peaks_totals','w')
 bedgraph = gzip.open(sys.argv[1],'r')
-out_file = open('../dnase_in_windows','w')
+out_file = open('../processed_signal_in_peaks.bed','w')
 
 first_peak = peaks_file.readline()
 [peak_start,peak_end] = get_peak_range(first_peak)
