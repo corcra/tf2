@@ -9,11 +9,12 @@ N_ITER <- 5
 # DNase features
 N_FEATURES <- 1
 THRESHOLD <- 1
+TAU <- 0.1
 
 # ---- Load functions! ---- #
 source('wtf_fns_ok.r')
 source('wtf_fns.r')
-source('wtf_features.r')
+#source('wtf_features.r')
 library(rqhmm)
 
 # ---- Process the DNase-1 data! ---- #
@@ -149,7 +150,7 @@ for (iter in 1:N_ITER){
                 }
                 # save the transition parameters for this peak (we will use these next time)
                 # note! this includes getting the interaction part!
-                transition_params[[factor]][[peak]] <- get_new_transition_params(peak,peak_length,factor,factor_size,binding_status,coincidence,gamma_and_xi)
+                transition_params[[factor]][[peak]] <- get_new_transition_params(peak,peak_length,factor,factor_size,binding_status,coincidence,gamma_and_xi,TAU)
 
                 # increase the log-likelihood...
                 ll_cumulative <- ll_cumulative + gamma_and_xi$"ll"
