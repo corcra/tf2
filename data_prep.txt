@@ -1,0 +1,30 @@
+    # get the peaks!
+zcat k562_dnase/wgEncodeOpenChromDnaseK562PkV2.narrowPeak.gz | awk '{ print $1":"$2"-"$3+1 }' > k562_dnase_peaks
+    # get the sequence!
+twoBitToFa /gbdb/hg19/hg19.2bit peak_seq.fa -seqList=k562_dnase_peaks -noMask
+    # format the sequence!
+python format_fasta.py
+    # overlap with called peaks to get peak VALUES (in bedgraph format)!
+zcat ~/k562_dnase/wgEncodeOpenChromDnaseK562PkV2.narrowPeak.gz | bedmap --range 100 --echo --skip-unmapped wgEncodeOpenChromDnaseK562SigV2.bedGraph -> overlaps.bed
+gzip overlaps.bed
+    # process this into R-ready format! warning: this takes ages
+python format_bedgraph.py
+
+# What remains:
+# Read the output of format_bedgraph... this has one line per location, and
+# a list of the DNase values around that location!
+# These need to be processed into features! (probably use R to do this)
+# For each feature:
+# Output a new file with one line PER PEAK: columns are feature values for the
+# locations in the peak.
+# Use merge_files.py on the seq data (output from format_fasta.py) and ALL the
+# feature files!
+# There are probably better ways to do this (there are definitely better ways
+# to do this) but this can do for now...
+
+    # doing the above ... this will produce merged_files.gz, which can then be
+    # used as input to the algorithm!
+python merge_files.py peak_seq_fa.gz.oneperline.gz feature1.gz feature2.gz ...
+featureN.gz
+
+
