@@ -11,7 +11,20 @@ firstfile = gzip.open(sys.argv[1])
 otherfiles = [gzip.open(arg) for arg in sys.argv[2:]]
 
 for line in firstfile:
+    identifier = line.split()[0:3]
+    length = len(line.split())
     outfile.write(line)
     for otherfile in otherfiles:
         otherline = otherfile.readline()
-        outfile.write(otherline)
+        other_ident = otherline.split()[0:3]
+        other_length = len(otherline.split())
+        if not other_ident == identifier:
+            print 'ERROR! DIFFERING IDENTIFIERS?'
+            print identifier, other_ident
+            sys.exit()
+        elif not other_length == length:
+            print 'ERROR! DIFFERING LENGTHS?'
+            print length, other_length
+            sys.exit()
+        else:
+            outfile.write(otherline)
