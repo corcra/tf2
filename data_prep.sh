@@ -10,6 +10,7 @@ zcat ~/k562_dnase/wgEncodeOpenChromDnaseK562PkV2.narrowPeak.gz | bedmap --range 
 gzip signal_in_peaks.bed
     # process this into R-ready format! warning: this takes ages. second warning: file locations... check them!
 python format_bedgraph.py signal_in_peaks.bed.gz
+gzip processed_signal_in_peaks.bed
 
     # SPECIFIC TO MY DATA: the above bedgraph: signal_in_peaks appears to be a subset of the sequence data! ... except for a single region on the X chromosome? (not sure what's going on here!)
     # THEREFORE: we shall trim down the sequence data so that it only contains those lines also in the signal data... (at this point, individual lines refer to peaks)... format_bedgraph produces a list of recorded peaks, so we use this
@@ -36,5 +37,3 @@ rm peak_seq.fa.gz.oneperline
 
     # doing the above ... this will produce merged_files.gz, which can then be used as input to the algorithm!
 python merge_files.py peak_seq_fa.gz.oneperline.gz feature1.gz feature2.gz ... featureN.gz
-
-
