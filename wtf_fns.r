@@ -36,7 +36,7 @@ get_new_transition_params <- function(peak,peak_length,factor,factor_size,bindin
     return(list(B=c(a_BB,a_BF,a_BG),G=c(a_GB,a_GG)))
 }
 
-get_theta <- function(gamma,peak_data,N_STATES,N_FEATURES){
+get_theta <- function(gamma,data,N_STATES,N_FEATURES){
     theta_d <- rowSums(gamma)
     theta_n <- matrix(rep(0,N_STATES*N_FEATURES),nrow=N_STATES,ncol=N_FEATURES)
     # theta_numer is more complicated... for each location in the peak we have a matrix: the rows correspond to STATES and the columns correspond to the DNase emissions!
@@ -48,14 +48,14 @@ get_theta <- function(gamma,peak_data,N_STATES,N_FEATURES){
             for (feature in 1:N_FEATURES){
 #                print('vals:')
 #                print(gamma[state,loc])
-#                print(peak_data[(feature+1),loc]-1)
+#                print(data[(feature+1),loc]-1)
 #                print('before:')
 #                print(theta_n[state,feature])
-                theta_n[state,feature] <- theta_n[state,feature] + gamma[state,loc]*(peak_data[(feature+1),loc]-1)
+                theta_n[state,feature] <- theta_n[state,feature] + gamma[state,loc]*(data[(feature+1),loc]-1)
 #                print("after:")
 #                print(theta_n[state,feature])
 #                print("because:")
-#                print(gamma[state,loc]*(peak_data[(feature+1),loc]-1))
+#                print(gamma[state,loc]*(data[(feature+1),loc]-1))
 #                browser()
             }
         }
@@ -71,7 +71,7 @@ get_gamma_and_xi<-function(hmm,peak_data,peak_length,N_STATES,N_FEATURES){
     beta_prime <- backward.qhmm(factor_hmm,peak_data)
     loglik <- attr(alpha_prime,"loglik")
 #    # if it's not finite it's probably -Inf, which is secretly a 0
-#    wait, we don't want ot delete these...
+#    wait, we don't want to delete these...
 #    alpha_prime[!is.finite(alpha_prime)]<-0
 #    beta_prime[!is.finite(beta_prime)]<-0
 
