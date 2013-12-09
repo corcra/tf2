@@ -12,21 +12,21 @@ get_emission_prob<-function(hmm,peak_data,peak_length,state,N_FEATURES){
     return(probs)
 }
 
-get_new_transition_params <- function(peak,peak_length,factor,factor_size,binding_status,coincidence,gamma_and_xi){
+get_new_transition_params <- function(peak,peak_length,factor,factor_size,binding_status,coincidence,gamma_and_xi,TAU){
     # get the interaction modifier
     C_int <- get_C_int(peak,peak_length,factor,factor_size,binding_status,coincidence)
 
     # when I say xi, i really mean the summed form
     # translate these to transition probabilities!
-    norm_B <- gamma_and_xi$"xi_BB"+gamma_and_xi$"xi_BF"+gamma_and_xi$"xi_BG"
+    norm_B <- gamma_and_xi$"xi_BB"+gamma_and_xi$"xi_BG"
     norm_G <- gamma_and_xi$"xi_GB"+gamma_and_xi$"xi_GG"
     if (norm_B==0|norm_G==0){
         print('wtf')
         browser()
         }
-    a_BB <- (1-C_int)*gamma_and_xi$"xi_BB"/norm_B
-    a_BF <- (1-C_int)*gamma_and_xi$"xi_BF"/norm_B + C_int
-    a_BG <- (1-C_int)*gamma_and_xi$"xi_BG"/norm_B
+    a_BB <- (1-TAU-C_int)*gamma_and_xi$"xi_BB"/norm_B
+    a_BF <- TAU + C_int
+    a_BG <- (1-TAU-C_int)*gamma_and_xi$"xi_BG"/norm_B
     a_GB <- gamma_and_xi$"xi_GB"/norm_G
     a_GG <- gamma_and_xi$"xi_GG"/norm_G
    
@@ -82,10 +82,9 @@ get_gamma_and_xi<-function(hmm,peak_data,peak_length,N_STATES,N_FEATURES){
     # Note: only care about xi_BB, (xi_BF), xi_BG, xi_GB, and xi_GG, so can do these separately...
     # Will be needing the likelihood of the data given G and B...
     emissions_B <- get_emission_prob(hmm,peak_data,peak_length,1,N_FEATURES)
-    emissions_F <- get_emission_prob(hmm,peak_data,peak_length,2,N_FEATURES)
     emissions_G <- get_emission_prob(hmm,peak_data,peak_length,N_STATES,N_FEATURES)
     a_BB <- get.transition.params.qhmm(hmm,1)[1]
-    a_BF <- get.transition.params.qhmm(hmm,1)[2]
+    #a_BF <- get.transition.params.qhmm(hmm,1)[2]
     # remember, B can only transition to B,F,G
     a_BG <- get.transition.params.qhmm(hmm,1)[3]
     # G can only transition to B,G
@@ -94,10 +93,9 @@ get_gamma_and_xi<-function(hmm,peak_data,peak_length,N_STATES,N_FEATURES){
 
     # the B state is the first row!
     xi_BB <- sum(exp(alpha_prime[1,1:(peak_length-1)]+beta_prime[1,2:peak_length]+log(emissions_B)+log(a_BB)-loglik))
-    xi_BF <- sum(exp(alpha_prime[1,1:(peak_length-1)]+beta_prime[2,2:peak_length]+log(emissions_F)+log(a_BF)-loglik))
     xi_BG <- sum(exp(alpha_prime[1,1:(peak_length-1)]+beta_prime[N_STATES,2:peak_length]+log(emissions_G)+log(a_BG)-loglik))
     xi_GB <- sum(exp(alpha_prime[N_STATES,1:(peak_length-1)]+beta_prime[1,2:peak_length]+log(emissions_B)+log(a_GB)-loglik))
     xi_GG <- sum(exp(alpha_prime[N_STATES,1:(peak_length-1)]+beta_prime[N_STATES,2:peak_length]+log(emissions_G)+log(a_GG)-loglik))
 
-    return(list("gamma"=gamma,"xi_BB"=xi_BB,"xi_BG"=xi_BG,"xi_BF"=xi_BF,"xi_GB"=xi_GB,"xi_GG"=xi_GG,"ll"=loglik))
+    return(list("gamma"=gamma,"xi_BB"=xi_BB,"xi_BG"=xi_BG,"xi_GB"=xi_GB,"xi_GG"=xi_GG,"ll"=loglik))
 }
