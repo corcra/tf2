@@ -28,7 +28,7 @@ library(rqhmm)
 
 # ---- Load Data! ---- #
 # right now this data is real sequence data but made-up features
-fc <- file('processed_data.gz',open='r')
+fc <- file('processed_data_nomissing.gz',open='r')
 data <- vector("list",N_PEAKS)
 for (peak in 1:N_PEAKS){
     buff <- scan(fc,sep=" ",what=numeric(),nlines=(N_FEATURES+1))
