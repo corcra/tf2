@@ -85,7 +85,8 @@ for (iter in 1:N_ITER){
         # initialise emission parameters for this factor
         if (!exists(paste("emission_params[[",factor,"]]",sep=""))){
             cat("No emission parameters saved for ",factor," - making some up!\n")
-            emission_params[[factor]] <- matrix(runif(N_STATES*N_FEATURES),nrow=N_STATES,ncol=N_FEATURES)
+#            emission_params[[factor]] <- matrix(runif(N_STATES*N_FEATURES),nrow=N_STATES,ncol=N_FEATURES)
+            emission_params[[factor]] <- matrix(rep(0.5,N_STATES*N_FEATURES),nrow=N_STATES,ncol=N_FEATURES)
             }
 
         # initialise a blank hmm with the right size... and fixed variables
