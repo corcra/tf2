@@ -33,8 +33,17 @@ def get_peak_range(pre_line):
     return (start,end)
 
 def get_flanks(i,buff,WIN_EDGE):
-# OUTSTANDING QUESTION: what to do when there is insufficient buffer to do this?
-    flank_list = [element.split()[2] for element in buff[(i-WIN_EDGE):(i+WIN_EDGE+1)]]
+# problem: we want to create flanks based on GENETIC distance
+# best case scenario is each location in the buffer corresponds to each location
+# in any other scenario, some locations are MISSING -> the buffer contains a larger region
+# so the true flanking site is inside buff[(i-WIN_EDGE):(i+WIN_EDGE+1)]
+# we just have find it! -> check each element if it's inside...
+    current_loc = int(buff[i].split()[1])
+    lower_flank = current_loc-WIN_EDGE
+    # note inclusive
+    upper_flank = current_loc+WIN_EDGE
+    # the output of this script is going to look rather weird
+    flank_list = [element.split()[1]+' '+element.split()[2] for element in buff[(i-WIN_EDGE):(i+WIN_EDGE+1)] if in_range(int(element.split()[1]),lower_flank,upper_flank)]
     flanks = ' '.join(flank_list)
     return flanks
 
