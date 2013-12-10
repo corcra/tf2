@@ -15,7 +15,7 @@ gzip $PEAK_SEQ
 # format the sequence! ... this creates a file called $PEAK_SEQ.gz.oneperline and also $PEAK_LIST.totals
 python format_fasta.py $PEAK_SEQ.gz
 # overlap with called peaks to get peak VALUES (in bedgraph format)!
-zcat $DNASE_SIGNAL | bedmap --range 50 --echo --skip-unmapped - $DNASE_PEAKS - > $SIGNAL_IN_PEAKS
+zcat $DNASE_SIGNAL | bedmap --range 50 --echo --skip-unmapped - $DNASE_PEAKS > $SIGNAL_IN_PEAKS
 gzip $SIGNAL_IN_PEAKS
 # process this into R-ready format! warning: this takes ages. second warning: file locations... check them! ... this creates a file called $SIGNAL_IN_PEAKS.processed ... also $PEAK_LIST.totals ... both of these need to be read into R!
 python format_bedgraph.py $SIGNAL_IN_PEAKS.gz $PEAK_LIST
