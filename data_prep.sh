@@ -1,5 +1,6 @@
 DNASE_PEAKS=wgEncodeOpenChromDnaseK562PkV2.narrowPeak
-DNASE_SIGNAL=wgEncodeOpenChromDnaseK562SigV2.bedGraph.gz
+# note: need to convert this from bw 
+DNASE_SIGNAL=wgEncode UwDgfK562Sig.bedGraph.gz
 SIGNAL_IN_PEAKS=signal_in_peaks.bed
 PEAK_LIST=k562_dnase_peaks
 PEAK_SEQ=peak_seq.fa
