@@ -34,16 +34,7 @@ def get_peak_range(pre_line):
 
 def get_flanks(i,buff,WIN_EDGE):
 # OUTSTANDING QUESTION: what to do when there is insufficient buffer to do this?
-# Also WHY is that happening?
     flank_list = [element.split()[2] for element in buff[(i-WIN_EDGE):(i+WIN_EDGE+1)]]
-#    if not len(flank_list)==(2*WIN_EDGE+1):
-#        print buff[(i-WIN_EDGE):(i+WIN_EDGE+1)]
-#        print WIN_EDGE
-#        print i-WIN_EDGE
-#        print buff[i+WIN_EDGE+1]
-#        print buff[i-WIN_EDGE]
-#        print len(flank_list)
-#        sys.exit()
     flanks = ' '.join(flank_list)
     return flanks
 
@@ -53,17 +44,17 @@ def process_peak(peak_num,peak_start,peak_end,buff,outfile,new_peaks_file):
     peak_length = peak_end-peak_start+1
     buff_length = len(buff)
     # what if there isn't enough buffer? NOTE: THIS MODIFIES THE PEAK CALLS, SO WE NEED TO USE THE OUTPUT OF THIS SCRIPT TO DEFINE OUR PEAKS FROM NOW ON... (the new_peaks_file)..
-    buff_start = int(buff[0].split()[1])
-    buff_end = int(buff[-1].split()[1])
-    if (peak_start-buff_start)<WIN_EDGE:
-        print peak_start
-        print buff_start
-        sys.exit()
+#    buff_start = int(buff[0].split()[1])
+#    buff_end = int(buff[-1].split()[1])
+#    if (peak_start-buff_start)<WIN_EDGE:
+#        print peak_start
+#        print buff_start
+#        sys.exit()
         # move up the start of the peak
-        peak_start = buff_start+WIN_EDGE
-    if (buff_end-peak_end)<WIN_EDGE:
+#        peak_start = buff_start+WIN_EDGE
+#    if (buff_end-peak_end)<WIN_EDGE:
         # move in the end of the peak
-        peak_end = buff_end-WIN_EDGE
+#        peak_end = buff_end-WIN_EDGE
     # this will be the total signal in the peak... can rewrite the dnase_peaks file to include this, i guess
     peak_total = 0
     for i in range(buff_length):
