@@ -217,5 +217,7 @@ for (iter in 1:N_ITER){
     # for the purpose of somehow gauging if convergence is occurring
 #    visualise_binding(binding_status)
 }
+
 # ---- After iteration: retrieve predictions ---- #
-# This depends on how I'm storing the data, but basically need a prediction from each TF for each location, maybe whatever else.
+sens_spec <- get_sens_spec(binding_status,bound_from_chip,FACTORS)
+# This depends on how I'm storing the data, but basically need a prediction from each TF for each location, maybe whatever else... atm just doing it per-peak... can we do better than that? do we have a validation set?
