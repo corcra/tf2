@@ -85,7 +85,7 @@ for (iter in 1:N_ITER){
 
         # initialise emission parameters for this factor
         if (!exists(paste("emission_params[[",factor,"]]",sep=""))){
-            print(paste("no emission parameters saved for",factor,"- making some up!"))
+            cat("No emission parameters saved for ",factor," - making some up!\n")
             emission_params[[factor]] <- matrix(runif(N_STATES*N_FEATURES),nrow=N_STATES,ncol=N_FEATURES)
             }
 
@@ -215,7 +215,7 @@ for (iter in 1:N_ITER){
     }
     binding_status <- binding_temp
     # for the purpose of somehow gauging if convergence is occurring
-    visualise_binding(binding_status)
+#    visualise_binding(binding_status)
 }
 # ---- After iteration: retrieve predictions ---- #
 # This depends on how I'm storing the data, but basically need a prediction from each TF for each location, maybe whatever else.
