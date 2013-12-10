@@ -31,7 +31,7 @@ library(rqhmm)
 fc <- file('processed_data_nomissing.gz',open='r')
 data <- vector("list",N_PEAKS)
 for (peak in 1:N_PEAKS){
-    buff <- scan(fc,sep=" ",what=numeric(),nlines=(N_FEATURES+1))
+    buff <- scan(fc,sep=" ",what=numeric(),nlines=(N_FEATURES+1),quiet=TRUE)
     # columns -> number of locations, rows -> number of emission variables (first one will be DNA)
     data[[peak]] <- matrix(buff,nrow=(N_FEATURES+1),byrow=T)
     len<-ncol(data[[peak]])
