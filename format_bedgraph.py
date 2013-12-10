@@ -56,6 +56,9 @@ def process_peak(peak_num,peak_start,peak_end,buff,outfile,new_peaks_file):
     buff_start = int(buff[0].split()[1])
     buff_end = int(buff[-1].split()[1])
     if (peak_start-buff_start)<WIN_EDGE:
+        print peak_start
+        print buff_start
+        sys.exit()
         # move up the start of the peak
         peak_start = buff_start+WIN_EDGE
     if (buff_end-peak_end)<WIN_EDGE:
