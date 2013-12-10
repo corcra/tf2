@@ -99,3 +99,19 @@ get_gamma_and_xi<-function(hmm,peak_data,peak_length,N_STATES,N_FEATURES){
 
     return(list("gamma"=gamma,"xi_BB"=xi_BB,"xi_BG"=xi_BG,"xi_GB"=xi_GB,"xi_GG"=xi_GG,"ll"=loglik))
 }
+
+get_sens_spec <- function(pred,known,FACTORS){
+    ss <- vector("list")
+    for (factor in FACTORS){
+        pos<-which(known[,factor]==1)
+        neg<-which(known[,factor]==0)
+#        TP<-sum(pred[pos]==1)
+#        FP<-sum(pred[neg]==1)
+#        TN<-sum(pred[neg]==0)
+#        FN<-sum(pred[pos]==0)
+        tpr<-mean(pred[pos]==1)
+        fpr<-mean(pred[neg]==1)
+        ss[[factor]]<-list("sens"=tpr,"spec"=(1-fpr))
+        }
+    return(ss)
+    }
