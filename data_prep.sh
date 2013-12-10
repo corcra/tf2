@@ -55,5 +55,6 @@ python merge_files.py peak_seq_fa.gz.oneperline.gz feature1.gz feature2.gz ... f
 # Need to look for ChIP-seq peaks in the DNase peaks! the peak list is $PEAK_LIST.totals ... alternately $PEAK_SEQ_WITHSIGNAL.gz should contain this information (these should agree on peaks... need to double check this! maintain consistency!)
 # For obtaining the data... let's assume I have a list of all the files on the ENCODE TFBS download page, then we just basically have
 cat webpage.txt | grep -i 'k562' | grep -i 'tfbs' | sed '/Ifng/d' > k562_tfbs_noIfng.txt
-grep -i 'k562' 
+# this is pretty horrifying, why am i not just using python WHAT PURPOSE DOES THIS EVEN SERVE
+cut -d '/' -f 15 k562_tfbs_noIfng.txt | cut -d '.' -f 3 | cut -c 9- | cut -d '_' -f 1 | cut -d '2' -f 2- | sed 's/Rep0//'
 zcat $CHIP_PEAKS | bedmap --echo --indicator --delim '\t' $PEAK_LIST.totals - > $FACTOR_BOUND_PEAKS
