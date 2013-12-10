@@ -1,13 +1,19 @@
 # Transcription factor binding site identification! Including interactions!
 
+# ---- For my implementation: fix the other factors ---- #
+cat('Getting binding status from ChIP-seq data!\n')
+bound_from_chip <- as.matrix(read.table('binding_mat',header=T))
+
 # ---- Constants! ---- #
-FACTORS <- c('f_one','f_two','f_three','f_four','f_five')
+FACTORS <- colnames(bound_from_chip)
+#FACTORS <- c('f_one','f_two','f_three','f_four','f_five')
 N_FACTORS <- length(FACTORS)
-#N_PEAKS <- 112025
+N_PEAKS <- nrow(bound_from_chip)
 N_PEAKS <- 20
 N_ITER <- 5
 # DNase features
 N_FEATURES <- 1
+# EM threshold
 THRESHOLD <- 0.5
 TAU <- 0.1
 
@@ -22,11 +28,6 @@ library(rqhmm)
 #DNase_emissions <- get_features(DNase_data)
 
 # ---- Load Data! ---- #
-# Question: how much preprocessing to do on the data? Definitely need:
-#   - sequence (in FASTA format)
-#   - DNase values! (eg a bw or wiggle file!)
-# Or maybe just take DNase peak calls (+wig file), get the seq from that...
-#
 # right now this data is real sequence data but made-up features
 fc <- file('processed_data.gz',open='r')
 data <- vector("list",N_PEAKS)
@@ -42,10 +43,12 @@ close(fc)
 cat("Data loaded!\n")
 
 # ---- Initialise binding status ---- #
-# Will need to get this from ChIP-seq data once I pick a test TF.
-binding_status<-matrix(rbinom(N_PEAKS*N_FACTORS,1,0.5),nrow=N_PEAKS,ncol=N_FACTORS)
-binding_temp<-matrix(rbinom(N_PEAKS*N_FACTORS,1,0.5),nrow=N_PEAKS,ncol=N_FACTORS)
-#binding_temp<-matrix(rep(0,(N_PEAKS*N_FACTORS)),nrow=N_PEAKS,ncol=N_FACTORS)
+# take it from chip!
+binding_status <- bound_from_chip
+#binding_status<-matrix(rbinom(N_PEAKS*N_FACTORS,1,0.5),nrow=N_PEAKS,ncol=N_FACTORS)
+binding_temp <- binding_status
+# initialise our target factor (CTCF) to something random... (what we would do in general to all)
+binding_temp[,"CTCF"]<-rbinom(N_PEAKS,1,0.5)
 colnames(binding_status)<-FACTORS
 colnames(binding_temp)<-FACTORS
 
@@ -67,7 +70,7 @@ for (factor in FACTORS){
 }
 
 # for testing: only looping over one TF
-TEST_FACTORS<-"f_one"
+TEST_FACTORS<-"CTCF"
 # ---- The outer loop: 'sample' over binding states ---- #
 for (iter in 1:N_ITER){
     cat('Iteration',iter,'\n')
