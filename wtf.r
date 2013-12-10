@@ -70,6 +70,7 @@ for (factor in FACTORS){
 
 # for testing: only looping over one TF
 TEST_FACTORS<-"CTCF"
+dbinding<-vector()
 # ---- The outer loop: 'sample' over binding states ---- #
 for (iter in 1:N_ITER){
     cat('Iteration',iter,'\n')
@@ -213,11 +214,15 @@ for (iter in 1:N_ITER){
         #path <- viterbi.qhmm(peak_hmm, peak_data)
         binding_temp[,factor] <- all_peaks_bound
     }
+    # using the infinity norm here, for the... fun?
+    dbinding <- c(dbinding,norm((binding_status-binding_temp),"I"))
+
     binding_status <- binding_temp
+
     # for the purpose of somehow gauging if convergence is occurring
 #    visualise_binding(binding_status)
 }
-
+plot(dbinding)
 # ---- After iteration: retrieve predictions ---- #
 cm <- get_confusion_matrix(binding_status,bound_from_chip,FACTORS)
 # This depends on how I'm storing the data, but basically need a prediction from each TF for each location, maybe whatever else... atm just doing it per-peak... can we do better than that? do we have a validation set?
