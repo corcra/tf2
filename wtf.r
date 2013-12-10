@@ -8,7 +8,7 @@ N_PEAKS <- 20
 N_ITER <- 5
 # DNase features
 N_FEATURES <- 1
-THRESHOLD <- 1
+THRESHOLD <- 0.5
 TAU <- 0.1
 
 # ---- Load functions! ---- #
@@ -44,7 +44,8 @@ cat("Data loaded!\n")
 # ---- Initialise binding status ---- #
 # Will need to get this from ChIP-seq data once I pick a test TF.
 binding_status<-matrix(rbinom(N_PEAKS*N_FACTORS,1,0.5),nrow=N_PEAKS,ncol=N_FACTORS)
-binding_temp<-matrix(rep(0,(N_PEAKS*N_FACTORS)),nrow=N_PEAKS,ncol=N_FACTORS)
+binding_temp<-matrix(rbinom(N_PEAKS*N_FACTORS,1,0.5),nrow=N_PEAKS,ncol=N_FACTORS)
+#binding_temp<-matrix(rep(0,(N_PEAKS*N_FACTORS)),nrow=N_PEAKS,ncol=N_FACTORS)
 colnames(binding_status)<-FACTORS
 colnames(binding_temp)<-FACTORS
 
@@ -100,6 +101,7 @@ for (iter in 1:N_ITER){
         EM.iter <- 0
         ll.all <- vector("numeric")
 
+        decrease <- 0
         # ---- Second middle loop: EM! ---- #
         while(abs(delta_ll)>THRESHOLD){
             EM.iter <- EM.iter + 1
@@ -144,10 +146,11 @@ for (iter in 1:N_ITER){
                 theta_numer <- theta_numer + theta$"theta_numer"
                 theta_denom <- theta_denom + theta$"theta_denom"
     
-                if(sum(theta_numer==theta_denom)>0){
-                    print('theta_num is the same as theta_denom somewhere?')
-                    browser()
-                }
+#                if(sum(theta_numer==theta_denom)>0){
+#                    print('theta_num is the same as theta_denom somewhere?')
+#                    browser()
+#                }
+#
                 # save the transition parameters for this peak (we will use these next time)
                 # note! this includes getting the interaction part!
                 transition_params[[factor]][[peak]] <- get_new_transition_params(peak,peak_length,factor,factor_size,binding_status,coincidence,gamma_and_xi,TAU)
@@ -156,24 +159,25 @@ for (iter in 1:N_ITER){
                 ll_cumulative <- ll_cumulative + gamma_and_xi$"ll"
             }
             # update the emission parameters ... the transition parameters are saved in transition_params
-            if(sum(theta_denom==0)>0){
-                print("have zeroes in theta_denom!")
-                browser()
-            }
-            if(sum(theta_numer==0)>0){
-                print("have zeroes in theta_numer!")
-                browser()
-            }
-            for (state in 1:N_STATES){
-                emission_params[[factor]][state,] <- theta_numer[state]/theta_denom[state]
-            }
+#            if(sum(theta_denom==0)>0){
+#                print("have zeroes in theta_denom!")
+#                browser()
+#            }
+#            if(sum(theta_numer==0)>0){
+#                print("have zeroes in theta_numer!")
+#                browser()
+#            }
+# excluding emission_params for now... will EM converge? who knows!
+#            for (state in 1:N_STATES){
+#                emission_params[[factor]][state,] <- theta_numer[state]/theta_denom[state]
+#            }
 # 'smart' way of doing this
 #            emission_params[[factor]] <- theta_numer/theta_denom
-            emission_params[[factor]][is.nan(emission_params[[factor]])] <- 0
-            if(sum(emission_params[[factor]]==1)>0){
-                print('grr')
-                browser()
-            }
+#            emission_params[[factor]][is.nan(emission_params[[factor]])] <- 0
+#            if(sum(emission_params[[factor]]==1)>0){
+#                print('grr')
+#                browser()
+#            }
 
             # check how the likelihood has changed...
             ll <- ll_cumulative
@@ -182,6 +186,7 @@ for (iter in 1:N_ITER){
             if(delta_ll<0){
                 cat("ERROR: likelihood is decreasing! Check yo EM!\n")
                 print(delta_ll)
+                decrease = decrease + delta_ll
 #                browser()
             }
             ll_old <- ll
@@ -189,6 +194,7 @@ for (iter in 1:N_ITER){
         }
         cat("EM has converged?\n")
         plot(ll.all,type='l',xlab='Iteration',ylab='Log-likelihood')
+        cat('lhood decreased by',decrease,'in total\n')
 
         # now we have to check if it's bound or not...
         for (peak in 1:N_PEAKS){
@@ -198,7 +204,7 @@ for (iter in 1:N_ITER){
             posteriors <- posterior.qhmm(peak_hmm,peak_data,n_threads=2)
             bound_yn <- is_bound(posteriors[,2])
             all_peaks_bound[peak] <- bound_yn
-            print(bound_yn)
+#            print(bound_yn)
             }
 
         #path <- viterbi.qhmm(peak_hmm, peak_data)
@@ -208,6 +214,5 @@ for (iter in 1:N_ITER){
     # for the purpose of somehow gauging if convergence is occurring
     visualise_binding(binding_status)
 }
-
 # ---- After iteration: retrieve predictions ---- #
 # This depends on how I'm storing the data, but basically need a prediction from each TF for each location, maybe whatever else.
