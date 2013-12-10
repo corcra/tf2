@@ -21,6 +21,7 @@ get_feature1 <- function(signal_data,fc,mean){
 #
 # --- Constants and data --- #
 
+# will need to fill in here, because we don't always get the same number of hits in side the window (windows are in bp units)
 signal<-read.table("processed_signal_in_peaks.bed.gz",as.is=TRUE)
 #signal<-read.table("pre_process_example",as.is=TRUE)
 peaklist<-read.table("k562_dnase_peaks_totals")
