@@ -32,48 +32,57 @@ def get_peak_range(pre_line):
     end = int(line[(hyphen+1):])
     return (start,end)
 
-def get_flanks(i,buffer,WIN_EDGE):
+def get_flanks(i,buff,WIN_EDGE):
 # OUTSTANDING QUESTION: what to do when there is insufficient buffer to do this?
 # Also WHY is that happening?
-    flank_list = [element.split()[2] for element in buffer[(i-WIN_EDGE):(i+WIN_EDGE+1)]]
+    flank_list = [element.split()[2] for element in buff[(i-WIN_EDGE):(i+WIN_EDGE+1)]]
 #    if not len(flank_list)==(2*WIN_EDGE+1):
-#        print buffer[(i-WIN_EDGE):(i+WIN_EDGE+1)]
+#        print buff[(i-WIN_EDGE):(i+WIN_EDGE+1)]
 #        print WIN_EDGE
 #        print i-WIN_EDGE
-#        print buffer[i+WIN_EDGE+1]
-#        print buffer[i-WIN_EDGE]
+#        print buff[i+WIN_EDGE+1]
+#        print buff[i-WIN_EDGE]
 #        print len(flank_list)
 #        sys.exit()
     flanks = ' '.join(flank_list)
     return flanks
 
-def process_peak(peak_num,peak_start,peak_end,buffer,outfile,new_peaks_file):
+def process_peak(peak_num,peak_start,peak_end,buff,outfile,new_peaks_file):
     # what we have: one line per location (good!), with CHR LOC VAL PEAK_NUM
     # peak_end is the last location in the peak, not the upper bound
     peak_length = peak_end-peak_start+1
-    buffer_length = len(buffer)
+    buff_length = len(buff)
+    # what if there isn't enough buffer? NOTE: THIS MODIFIES THE PEAK CALLS, SO WE NEED TO USE THE OUTPUT OF THIS SCRIPT TO DEFINE OUR PEAKS FROM NOW ON... (the new_peaks_file)..
+    buff_start = int(buff[0].split()[1])
+    buff_end = int(buff[-1].split()[1])
+    if (peak_start-buff_start)<WIN_EDGE:
+        # move up the start of the peak
+        peak_start = buff_start+WIN_EDGE
+    if (buff_end-peak_end)<WIN_EDGE:
+        # move in the end of the peak
+        peak_end = buff_end-WIN_EDGE
     # this will be the total signal in the peak... can rewrite the dnase_peaks file to include this, i guess
     peak_total = 0
-    for i in range(buffer_length):
-        element = buffer[i]
+    for i in range(buff_length):
+        element = buff[i]
         [chr,loc,val] = element.split()
         if in_range(int(loc),peak_start,peak_end):
+            flanks = get_flanks(i,buff,WIN_EDGE)
             peak_total = peak_total + float(val)
-            flanks = get_flanks(i,buffer,WIN_EDGE)
             loc_line = chr+' '+str(loc)+' '+str(peak_num)+' '+flanks+'\n'
             outfile.write(loc_line)
     new_peaks_file.write(chr+'\t'+str(peak_start)+'\t'+str(peak_end)+'\t'+str(peak_total)+'\n') 
 
 # each line of this file contains peak range
-peaks_file = open('../k562_dnase_peaks','r')
-new_peaks_file = open('../k562_dnase_peaks_totals','w')
+peaks_file = open(sys.argv[2],'r')
+new_peaks_file = open(sys.argv[2]+'.totals','w')
 bedgraph = gzip.open(sys.argv[1],'r')
-out_file = open('../processed_signal_in_peaks.bed','w')
+out_file = open(sys.argv[1]+'.processed','w')
 
 first_peak = peaks_file.readline()
 [peak_start,peak_end] = get_peak_range(first_peak)
 
-peak_buffer = []
+peak_buff = []
 
 line_num = 0
 peak_num = 1
@@ -93,11 +102,11 @@ for line in bedgraph:
         for n in range(length):
             temp_loc = start+n
             temp_line = chro+' '+str(temp_loc)+' '+str(val)
-            peak_buffer.append(temp_line)
+            peak_buff.append(temp_line)
     else:
-        if len(peak_buffer)>0:
-            process_peak(peak_num,peak_start,peak_end,peak_buffer,out_file,new_peaks_file)
-            peak_buffer = []
+        if len(peak_buff)>0:
+            process_peak(peak_num,peak_start,peak_end,peak_buff,out_file,new_peaks_file)
+            peak_buff = []
             peak_num = peak_num + 1
         if end>peak_end:
             # get a new peak
