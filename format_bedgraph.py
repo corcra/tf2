@@ -73,6 +73,9 @@ def process_peak(peak_num,peak_start,peak_end,buff,outfile,new_peaks_file):
             outfile.write(loc_line)
     new_peaks_file.write(chr+'\t'+str(peak_start)+'\t'+str(peak_end)+'\t'+str(peak_total)+'\n') 
 
+if len(sys.argv)<3:
+    sys.exit('Requires .bedGraph and peaklist file!')
+
 # each line of this file contains peak range
 peaks_file = open(sys.argv[2],'r')
 new_peaks_file = open(sys.argv[2]+'.totals','w')
