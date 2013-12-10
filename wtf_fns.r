@@ -111,7 +111,7 @@ get_sens_spec <- function(pred,known,FACTORS){
 #        FN<-sum(pred[pos]==0)
         tpr<-mean(pred[pos]==1)
         fpr<-mean(pred[neg]==1)
-        ss[[factor]]<-list("sens"=tpr,"spec"=(1-fpr))
+        ss[[factor]]<-list("sens"=tpr*100,"spec"=(1-fpr)*100)
         }
     return(ss)
     }
