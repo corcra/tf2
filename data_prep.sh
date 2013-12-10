@@ -1,5 +1,5 @@
-DNASE_PEAKS=wgEncodeOpenChromDnaseK562PkV2.narrowPeak.gz
-DNASE_SIGNAL=wgEncodeOpenChromDnaseK562SigV2.bedGraph
+DNASE_PEAKS=wgEncodeOpenChromDnaseK562PkV2.narrowPeak
+DNASE_SIGNAL=wgEncodeOpenChromDnaseK562SigV2.bedGraph.gz
 SIGNAL_IN_PEAKS=signal_in_peaks.bed
 PEAK_LIST=k562_dnase_peaks
 PEAK_SEQ=peak_seq.fa
@@ -15,7 +15,7 @@ gzip $PEAK_SEQ
 # format the sequence! ... this creates a file called $PEAK_SEQ.gz.oneperline and also $PEAK_LIST.totals
 python format_fasta.py $PEAK_SEQ.gz
 # overlap with called peaks to get peak VALUES (in bedgraph format)!
-zcat $DNASE_PEAKS | bedmap --range 100 --echo --skip-unmapped  $DNASE_SIGNAL - > $SIGNAL_IN_PEAKS
+zcat $DNASE_SIGNAL | bedmap --range 50 --echo --skip-unmapped - $DNASE_PEAKS - > $SIGNAL_IN_PEAKS
 gzip $SIGNAL_IN_PEAKS
 # process this into R-ready format! warning: this takes ages. second warning: file locations... check them! ... this creates a file called $SIGNAL_IN_PEAKS.processed ... also $PEAK_LIST.totals ... both of these need to be read into R!
 python format_bedgraph.py $SIGNAL_IN_PEAKS.gz $PEAK_LIST
@@ -56,5 +56,21 @@ python merge_files.py peak_seq_fa.gz.oneperline.gz feature1.gz feature2.gz ... f
 # For obtaining the data... let's assume I have a list of all the files on the ENCODE TFBS download page, then we just basically have
 cat webpage.txt | grep -i 'k562' | grep -i 'tfbs' | sed '/Ifng/d' > k562_tfbs_noIfng.txt
 # this is pretty horrifying, why am i not just using python WHAT PURPOSE DOES THIS EVEN SERVE
-cut -d '/' -f 15 k562_tfbs_noIfng.txt | cut -d '.' -f 3 | cut -c 9- | cut -d '_' -f 1 | cut -d '2' -f 2- | sed 's/Rep0//'
+cut -d '/' -f 15 k562_tfbs_noIfng.txt | cut -d '.' -f 3 | cut -c 9- | cut -d '_' -f 1 | cut -d '2' -f 2- | sed 's/Rep0//' > almost_Tfs.txt
+# nate gave me a list of ENCODE TFs, so I can scoop those out from the master list (or the aesthetically more pleasing result of the previous command)
+for i in {1..127}
+do
+    tf_name=`sed ''$i'q;d' TF_names.txt`
+    echo $tf_name `grep -i "$tf_name" almost_TFs.txt` >> my_tfs.txt
+done
+# some of these aren't found and simply produce boring columns
+awk 'NF-1' my_tfs.txt | uniq > to_get.txt
+# the result of this seems to be 57 TFs... ... save these! ... BAD SCRIPT!
+for i in {1..57}
+do
+    tf_ident=`sed ''$i'q;d' to_get.txt | cut -d ' ' -f 2`
+    remote_file=`grep $tf_ident webpage.txt`
+    tf_name=`sed ''$i'q;d' to_get.txt | cut -d ' ' -f 1`
+    wget $remote_file -o $tf_name.bb
+done
 zcat $CHIP_PEAKS | bedmap --echo --indicator --delim '\t' $PEAK_LIST.totals - > $FACTOR_BOUND_PEAKS
