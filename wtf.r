@@ -9,7 +9,6 @@ FACTORS <- colnames(bound_from_chip)
 #FACTORS <- c('f_one','f_two','f_three','f_four','f_five')
 N_FACTORS <- length(FACTORS)
 N_PEAKS <- nrow(bound_from_chip)
-N_PEAKS <- 20
 N_ITER <- 5
 # DNase features
 N_FEATURES <- 1
