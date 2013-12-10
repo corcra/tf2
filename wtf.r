@@ -6,14 +6,11 @@ bound_from_chip <- as.matrix(read.table('chip_binding_mat',header=T))
 
 # ---- Constants! ---- #
 FACTORS <- colnames(bound_from_chip)
-#FACTORS <- c('f_one','f_two','f_three','f_four','f_five')
 N_FACTORS <- length(FACTORS)
 N_PEAKS <- nrow(bound_from_chip)
 N_ITER <- 5
-# DNase features
 N_FEATURES <- 1
-# EM threshold
-THRESHOLD <- 0.5
+EM_THRESHOLD <- 0.5
 TAU <- 0.1
 
 # ---- Load functions! ---- #
@@ -44,10 +41,10 @@ cat("Data loaded!\n")
 # ---- Initialise binding status ---- #
 # take it from chip!
 binding_status <- bound_from_chip
-#binding_status<-matrix(rbinom(N_PEAKS*N_FACTORS,1,0.5),nrow=N_PEAKS,ncol=N_FACTORS)
 binding_temp <- binding_status
-# initialise our target factor (CTCF) to something random... (what we would do in general to all)
-binding_temp[,"CTCF"]<-rbinom(N_PEAKS,1,0.5)
+# initialise our target factor (CTCF) to something random...
+binding_status[,"CTCF"]<-rbinom(N_PEAKS,1,0.5)
+binding_temp[,"CTCF"]<-binding_status[,"CTCF"]
 colnames(binding_status)<-FACTORS
 colnames(binding_temp)<-FACTORS
 
@@ -56,10 +53,15 @@ colnames(binding_temp)<-FACTORS
 transition_params <- vector("list")
 for (factor in FACTORS){
     transition_params[[factor]] <- vector("list")
-    for (peak in 1:N_PEAKS){
-        transition_params[[factor]][[peak]] <- list(B=c(0.4,0.2,0.4),G=c(0.5,0.5))
     }
-}
+
+#transition_params <- vector("list")
+#for (factor in FACTORS){
+#    transition_params[[factor]] <- vector("list")
+#    for (peak in 1:N_PEAKS){
+#        transition_params[[factor]][[peak]] <- list(B=c(0.4,0.2,0.4),G=c(0.5,0.5))
+#    }
+#}
 
 emission_params <- vector("list")
 
@@ -100,14 +102,14 @@ for (iter in 1:N_ITER){
         all_peaks_bound <- rep(NA,N_PEAKS)
 
         # initialise the while loop
-        delta_ll <- THRESHOLD*2
+        delta_ll <- EM_THRESHOLD*2
         ll_old <- -Inf
         EM.iter <- 0
         ll.all <- vector("numeric")
 
         decrease <- 0
         # ---- Second middle loop: EM! ---- #
-        while(abs(delta_ll)>THRESHOLD){
+        while(abs(delta_ll)>EM_THRESHOLD){
             EM.iter <- EM.iter + 1
             cat("EM iteration",EM.iter,"\n")
             theta_denom <- rep(0,N_STATES)
@@ -135,6 +137,9 @@ for (iter in 1:N_ITER){
                 peak_length <- ncol(peak_data)
                
                 # initialise the parameters
+                if (!exists(paste("transition_params[[",factor,"]][[",peak,"]]",sep=""))){
+                    transition_params[[factor]][[peak]] <- list(B=c(0.4,0.2,0.4),G=c(0.5,0.5))
+                    }
                 trans_param <- transition_params[[factor]][[peak]]
                 emiss_param <- emission_params[[factor]]
                 peak_hmm <- initialise_hmm(factor_hmm,N_STATES,N_FEATURES,trans_param,emiss_param)
