@@ -3,6 +3,8 @@ DNASE_SIGNAL=wgEncodeOpenChromDnaseK562SigV2.bedGraph
 SIGNAL_IN_PEAKS=signal_in_peaks.bed
 PEAK_LIST=k562_dnase_peaks
 PEAK_SEQ=peak_seq.fa
+PEAK_SEQ_WITHSIGNAL=seq_in_peaks.bed
+CHIP_PEAKS=peakSeq.Haibk562Ctcf.bed.gz
 
 
 # get the peaks!
@@ -10,21 +12,22 @@ zcat $DNASE_PEAKS | awk '{ print $1":"$2"-"$3+1 }' > $PEAK_LIST
 # get the sequence!
 twoBitToFa /gbdb/hg19/hg19.2bit $PEAK_SEQ -seqList=$PEAK_LIST -noMask
 gzip $PEAK_SEQ
-# format the sequence! ... this creates a file called $PEAK_SEQ.gz.oneperline
+# format the sequence! ... this creates a file called $PEAK_SEQ.gz.oneperline and also $PEAK_LIST.totals
 python format_fasta.py $PEAK_SEQ.gz
 # overlap with called peaks to get peak VALUES (in bedgraph format)!
 zcat $DNASE_PEAKS | bedmap --range 100 --echo --skip-unmapped  $DNASE_SIGNAL - > $SIGNAL_IN_PEAKS
 gzip $SIGNAL_IN_PEAKS
-# process this into R-ready format! warning: this takes ages. second warning: file locations... check them! ... this creates a file called processed.$SIGNAL_IN_PEAKS
-python format_bedgraph.py $SIGNAL_IN_PEAKS.gz
-gzip processed.$SIGNAL_IN_PEAKS.gz
+# process this into R-ready format! warning: this takes ages. second warning: file locations... check them! ... this creates a file called $SIGNAL_IN_PEAKS.processed ... also $PEAK_LIST.totals ... both of these need to be read into R!
+python format_bedgraph.py $SIGNAL_IN_PEAKS.gz $PEAK_LIST
+# this file is a weird format, one line per location... the result of the R processing will be one line per peak!
+gzip $SIGNAL_IN_PEAKS.gz.processed
 
 # SPECIFIC TO MY DATA: the above bedgraph: signal_in_peaks appears to be a subset of the sequence data! ... except for a single region on the X chromosome? (not sure what's going on here!)
 # THEREFORE: we shall trim down the sequence data so that it only contains those lines also in the signal data... (at this point, individual lines refer to peaks)... format_bedgraph produces a list of recorded peaks, so we use this
-bedmap --echo --skip-unmapped peak_seq.fa.gz.oneperline k562_dnase_peaks_totals > sequence_by_peaks.bed
-gzip sequence_by_peaks.bed
-    # clean up
-rm peak_seq.fa.gz.oneperline
+bedmap --echo --skip-unmapped $PEAK_SEQ.gz.oneperline $PEAK_LIST.totals > $PEAK_SEQ_WITHSIGNAL
+gzip $PEAK_SEQ_WITHSIGNAL
+# clean up
+rm $PEAK_SEQ.gz.oneperline
 
 # by now we should have
 # signal_in_peaks and sequence_by_peaks, both gzipped 'bed' files...
@@ -48,4 +51,6 @@ python merge_files.py peak_seq_fa.gz.oneperline.gz feature1.gz feature2.gz ... f
 
 
 # -- Now for ChIP-seq! -- #
-# Need to look for ChIP-seq peaks in the DNase peaks!
+#bigBedToBed raw_chip bedchip...
+# Need to look for ChIP-seq peaks in the DNase peaks! the peak list is $PEAK_LIST.totals ... alternately $PEAK_SEQ_WITHSIGNAL.gz should contain this information (these should agree on peaks... need to double check this! maintain consistency!)
+zcat $CHIP_PEAKS | bedmap --echo --indicator --delim '\t' $PEAK_LIST.totals - > $FACTOR_BOUND_PEAKS
