@@ -16,12 +16,19 @@ def get_peak_range(pre_line):
 
 fasta_file = gzip.open(sys.argv[1],'r')
 outfile = open(sys.argv[1]+'.oneperline','w')
-buffer = ''
+buff = ''
+ignored_missing = 0
 for line in fasta_file:
     if '>' in line:
-        if len(buffer)!=0:
-            outfile.write(buffer.rstrip(' ')+'\n')
+        if len(buff)!=0:
+            # dealing with missing sequence data by ignoring it! let's just pretend those peaks don't exist!
+            if not 'N' in buff:
+                outfile.write(buff.rstrip(' ')+'\n')
+            else:
+                ignored_missing = ignored_missing + 1
         [chro,start,end] = get_peak_range(line)
-        buffer = chro+'\t'+str(start)+'\t'+str(end)+'\t'
+        buff = chro+'\t'+str(start)+'\t'+str(end)+'\t'
     else:
-        buffer = buffer +' '.join(line.strip().replace('A','1').replace('C','2').replace('G','3').replace('T','4'))+' '
+        buff = buff +' '.join(line.strip().replace('A','1').replace('C','2').replace('G','3').replace('T','4'))+' '
+
+print 'Ignored',ignored_missing,'peaks due to missing data.'
