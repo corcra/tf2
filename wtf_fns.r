@@ -67,8 +67,8 @@ get_theta <- function(gamma,data,N_STATES,N_FEATURES){
 
 get_gamma_and_xi<-function(hmm,peak_data,peak_length,N_STATES,N_FEATURES){
     # each ROW of this corresponds to a different state
-    alpha_prime <- forward.qhmm(factor_hmm,peak_data)
-    beta_prime <- backward.qhmm(factor_hmm,peak_data)
+    alpha_prime <- forward.qhmm(hmm,peak_data)
+    beta_prime <- backward.qhmm(hmm,peak_data)
     loglik <- attr(alpha_prime,"loglik")
 #    # if it's not finite it's probably -Inf, which is secretly a 0
 #    wait, we don't want to delete these...
