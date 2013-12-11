@@ -8,10 +8,12 @@ bound_from_chip <- as.matrix(read.table('chip_binding_mat',header=T))
 FACTORS <- colnames(bound_from_chip)
 N_FACTORS <- length(FACTORS)
 N_PEAKS <- nrow(bound_from_chip)
+# for now...
+#N_PEAKS <- 20
 N_ITER <- 5
 N_FEATURES <- 1
 EM_THRESHOLD <- 0.5
-TAU <- 0.1
+TAU <- 0.3
 
 # ---- Load functions! ---- #
 source('wtf_fns_ok.r')
@@ -51,10 +53,10 @@ colnames(binding_temp)<-FACTORS
 # ---- Initialise parameters! ---- # These are all per-factor! Hence lists!
 # this is also per-peak -> hence nested lists (ugh)
 transition_params <- vector("list")
-emission_params <- vector("list")
+emission_params <- vector("list",N_FACTORS)
 motifs<-vector("list")
 for (factor in FACTORS){
-    transition_params[[factor]] <- vector("list")
+    transition_params[[factor]] <- vector("list",N_PEAKS)
     motifs[[factor]]<-get_motif(factor)
 }
 
@@ -81,7 +83,7 @@ for (iter in 1:N_ITER){
         factor_size <- ncol(pwm)
         N_STATES <- factor_size+2
         # initialise emission parameters for this factor
-        if (!exists(paste("emission_params[[",factor,"]]",sep=""))){
+        if (is.null(emission_params[[factor]])){
             cat("No emission parameters saved for ",factor," - making some up!\n")
 #            emission_params[[factor]] <- matrix(runif(N_STATES*N_FEATURES),nrow=N_STATES,ncol=N_FEATURES)
             emission_params[[factor]] <- matrix(rep(0.5,N_STATES*N_FEATURES),nrow=N_STATES,ncol=N_FEATURES)
@@ -115,15 +117,21 @@ for (iter in 1:N_ITER){
                 peak_length <- ncol(peak_data)
                
                 # initialise the parameters
-                if (!exists(paste("transition_params[[",factor,"]][[",peak,"]]",sep=""))){
-                    cat("No transmission parameters saved for ",factor," - making some up!\n")
+                if (is.null(transition_params[[factor]][[peak]])){
+#                    cat("No transmission parameters saved for ",factor," - making some up!\n")
                     transition_params[[factor]][[peak]] <- list(B=c(0.4,0.2,0.4),G=c(0.5,0.5))
-                    }
+                }
                 trans_param <- transition_params[[factor]][[peak]]
                 emiss_param <- emission_params[[factor]]
                 # set the parameters of the model
                 peak_hmm <- initialise_hmm(factor_hmm,N_STATES,N_FEATURES,trans_param,emiss_param)
                 # getting alpha and betas in here, basically
+#                alpha_prime <- forward.qhmm(peak_hmm,peak_data)
+#                beta_prime <- backward.qhmm(peak_hmm,peak_data)
+#                loglik <- attr(alpha_prime,"loglik")
+
+#                gamma <- exp(alpha_prime + beta_prime - loglik)
+
                 gamma_and_xi <- get_gamma_and_xi(peak_hmm,peak_data,peak_length,N_STATES,N_FEATURES)
                 theta <- get_theta(gamma_and_xi$"gamma",peak_data,N_STATES,N_FEATURES)
                 #theta is additive over peaks, remember
@@ -138,7 +146,7 @@ for (iter in 1:N_ITER){
             }
             # update emission parameters after all peaks
             # excluding emission_params for now... will EM converge?
-#            emission_params[[factor]] <- theta_numer/theta_denom
+            emission_params[[factor]] <- theta_numer/theta_denom
 #            emission_params[[factor]][is.nan(emission_params[[factor]])] <- 0
 #            if(sum(emission_params[[factor]]==1)>0){
 #                print('grr')
@@ -185,4 +193,5 @@ for (iter in 1:N_ITER){
 plot(dbinding)
 # ---- After iteration: retrieve predictions ---- #
 cm <- get_confusion_matrix(binding_status,bound_from_chip,FACTORS)
+save('wtf.RData')
 # This depends on how I'm storing the data, but basically need a prediction from each TF for each location, maybe whatever else... atm just doing it per-peak... can we do better than that? do we have a validation set?
