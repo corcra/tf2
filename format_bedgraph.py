@@ -42,9 +42,13 @@ def get_flanks(i,buff,WIN_EDGE):
     lower_flank = current_loc-WIN_EDGE
     # note inclusive
     upper_flank = current_loc+WIN_EDGE
+    flank_range = range(lower_flank,upper_flank+1)
+    flank_list = [el.split()[1]+' '+el.split()[2] for el in buff[(i-WIN_EDGE):(i+WIN_EDGE+1)] if int(el.split()[1]) in flank_range]
     # the output of this script is going to look rather weird
-    flank_list = [element.split()[1]+' '+element.split()[2] for element in buff[(i-WIN_EDGE):(i+WIN_EDGE+1)] if in_range(int(element.split()[1]),lower_flank,upper_flank)]
+#    flank_list = [el.split()[1]+' '+el.split()[2] for el in buff[(i-WIN_EDGE):(i+WIN_EDGE+1)] if in_range(int(el.split()[1]),lower_flank,upper_flank)]
     flanks = ' '.join(flank_list)
+    print flank_range
+    print flanks
     return flanks
 
 def process_peak(peak_num,peak_start,peak_end,buff,outfile,new_peaks_file):
@@ -68,10 +72,17 @@ def process_peak(peak_num,peak_start,peak_end,buff,outfile,new_peaks_file):
         [chr,loc,val] = element.split()
         if in_range(int(loc),peak_start,peak_end):
             flanks = get_flanks(i,buff,WIN_EDGE)
+            if peak_num==2:
+                print buff[1:10]
+                print peak_start, peak_end
+                print element.split()
+                print i
+                sys.exit()
             peak_total = peak_total + float(val)
             loc_line = chr+' '+str(loc)+' '+str(peak_num)+' '+flanks+'\n'
             outfile.write(loc_line)
     new_peaks_file.write(chr+'\t'+str(peak_start)+'\t'+str(peak_end)+'\t'+str(peak_total)+'\n') 
+    return
 
 if len(sys.argv)<3:
     sys.exit('Requires .bedGraph and peaklist file!')
@@ -89,6 +100,7 @@ peak_buff = []
 
 line_num = 0
 peak_num = 1
+read_peaks = 1
 for line in bedgraph:
     # file's pretty big
     if line_num%100000==0:
@@ -104,7 +116,7 @@ for line in bedgraph:
         # creating a buffer of all the locs (expanded - one loc per line) in the peak
         for n in range(length):
             temp_loc = start+n
-            temp_line = chro+' '+str(temp_loc)+' '+str(val)
+            temp_line = chro+' '+str(temp_loc)+' '+str(val/length)
             peak_buff.append(temp_line)
     else:
         if len(peak_buff)>0:
@@ -114,7 +126,9 @@ for line in bedgraph:
         if end>peak_end:
             # get a new peak
             new_peak = peaks_file.readline()
+            read_peaks = read_peaks + 1
             # avoid EOF
             if len(new_peak)>0:
                 [peak_start,peak_end] = get_peak_range(new_peak)
 
+print 'read',read_peaks-1,'and wrote',peak_num-1
