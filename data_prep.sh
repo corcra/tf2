@@ -22,7 +22,7 @@ echo "Getting flanking signals!"
 bedmap --range 25 --echo --echo-map-score scored_in_peaks.bed | sed 's/[;|\|]/\t/g' > signal_with_flanks.bed
 # now re-restrict this to the original peak regions
 echo "Re-restricting locations (with flank info) to be inside peaks!"
-bedmap --echo --skip-unmapped signal_with.bed_flanks $DNASE_PEAKS  > dnase_signal_final.bed
+bedmap --echo --skip-unmapped signal_with_flanks.bed $DNASE_PEAKS  > dnase_signal_final.bed
 # ready to go to R!
 gzip dnase_signal_final.bed
 # clean up!
