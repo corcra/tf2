@@ -8,8 +8,6 @@ bound_from_chip <- as.matrix(read.table('chip_binding_mat',header=T))
 FACTORS <- colnames(bound_from_chip)
 N_FACTORS <- length(FACTORS)
 N_PEAKS <- nrow(bound_from_chip)
-# for now...
-#N_PEAKS <- 20
 N_ITER <- 5
 N_FEATURES <- 1
 EM_THRESHOLD <- 0.5
@@ -18,15 +16,11 @@ TAU <- 0.3
 # ---- Load functions! ---- #
 source('wtf_fns_ok.r')
 source('wtf_fns.r')
-#source('wtf_features.r')
 library(rqhmm)
-
-# ---- Process the DNase-1 data! ---- #
-# thinking I'll preprocess this...
-#DNase_emissions <- get_features(DNase_data)
 
 # ---- Load Data! ---- #
 # right now this data is real sequence data but made-up features
+# ... shoudl account for missing data somehow~
 fc <- file('processed_data_nomissing.gz',open='r')
 data <- vector("list",N_PEAKS)
 for (peak in 1:N_PEAKS){
@@ -43,15 +37,13 @@ cat("Data loaded!\n")
 # ---- Initialise binding status ---- #
 # take it from chip!
 binding_status <- bound_from_chip
-binding_temp <- binding_status
 # initialise our target factor (CTCF) to something random...
 binding_status[,"CTCF"]<-rbinom(N_PEAKS,1,0.5)
-binding_temp[,"CTCF"]<-binding_status[,"CTCF"]
+binding_temp <- binding_status
 colnames(binding_status)<-FACTORS
 colnames(binding_temp)<-FACTORS
 
 # ---- Initialise parameters! ---- # These are all per-factor! Hence lists!
-# this is also per-peak -> hence nested lists (ugh)
 transition_params <- vector("list")
 emission_params <- vector("list",N_FACTORS)
 motifs<-vector("list")
@@ -60,18 +52,9 @@ for (factor in FACTORS){
     motifs[[factor]]<-get_motif(factor)
 }
 
-#transition_params <- vector("list")
-#for (factor in FACTORS){
-#    transition_params[[factor]] <- vector("list")
-#    for (peak in 1:N_PEAKS){
-#        transition_params[[factor]][[peak]] <- list(B=c(0.4,0.2,0.4),G=c(0.5,0.5))
-#    }
-#}
-
-
 # for testing: only looping over one TF
 TEST_FACTORS<-"CTCF"
-dbinding<-vector("numeric")
+delta.binding<-vector("numeric")
 # ---- The outer loop: 'sample' over binding states ---- #
 for (iter in 1:N_ITER){
     cat('Iteration',iter,'\n')
@@ -85,7 +68,6 @@ for (iter in 1:N_ITER){
         # initialise emission parameters for this factor
         if (is.null(emission_params[[factor]])){
             cat("No emission parameters saved for ",factor," - making some up!\n")
-#            emission_params[[factor]] <- matrix(runif(N_STATES*N_FEATURES),nrow=N_STATES,ncol=N_FEATURES)
             emission_params[[factor]] <- matrix(rep(0.5,N_STATES*N_FEATURES),nrow=N_STATES,ncol=N_FEATURES)
         }
         # initialise a blank hmm with the right size... and fixed variables
@@ -95,13 +77,14 @@ for (iter in 1:N_ITER){
         # when we finish EM we will record binding predictions for all peaks
         all_peaks_bound <- rep(NA,N_PEAKS)
         # initialise the while loop
-        delta_ll <- EM_THRESHOLD*2
-        ll_old <- -Inf
+        delta.ll <- EM_THRESHOLD*2
+        ll.old <- -Inf
         EM.iter <- 0
         ll.all <- vector("numeric")
         decrease <- 0
+        browser()
         # ---- Second middle loop: EM! ---- #
-        while(abs(delta_ll)>EM_THRESHOLD){
+        while(abs(delta.ll)>EM_THRESHOLD){
             EM.iter <- EM.iter + 1
             cat("EM iteration",EM.iter,"\n")
             theta_denom <- rep(0,N_STATES)
@@ -155,14 +138,14 @@ for (iter in 1:N_ITER){
 
             # check how the likelihood has changed...
             ll <- ll_cumulative
-            delta_ll <- ll-ll_old
+            delta.ll <- ll-ll.old
             print(ll)
-            if(delta_ll<0){
+            if(delta.ll<0){
                 cat("ERROR: likelihood is decreasing! Check yo EM!\n")
-                print(delta_ll)
-                decrease = decrease + delta_ll
+                print(delta.ll)
+                decrease = decrease + delta.ll
             }
-            ll_old <- ll
+            ll.old <- ll
             ll.all <- c(ll.all,ll)
         }
         cat("EM has converged?\n")
@@ -183,14 +166,14 @@ for (iter in 1:N_ITER){
         binding_temp[,factor] <- all_peaks_bound
     }
     # using the infinity norm here, for the... fun?
-    dbinding <- c(dbinding,norm((binding_status-binding_temp),"I"))
+    delta.binding <- c(delta.binding,norm((binding_status-binding_temp),"I"))
 
     binding_status <- binding_temp
 
     # for the purpose of somehow gauging if convergence is occurring
 #    visualise_binding(binding_status)
 }
-plot(dbinding)
+plot(delta.binding)
 # ---- After iteration: retrieve predictions ---- #
 cm <- get_confusion_matrix(binding_status,bound_from_chip,FACTORS)
 save('wtf.RData')
