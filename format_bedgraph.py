@@ -28,9 +28,10 @@ def get_peak_range(pre_line):
     line = pre_line.strip()
     colon = line.find(':')
     hyphen = line.find('-')
+    chro = line[:colon]
     start = int(line[(colon+1):hyphen])
     end = int(line[(hyphen+1):])
-    return (start,end)
+    return (chro,start,end)
 
 def get_flanks(i,buff,WIN_EDGE):
 # problem: we want to create flanks based on GENETIC distance
@@ -51,10 +52,9 @@ def get_flanks(i,buff,WIN_EDGE):
     print flanks
     return flanks
 
-def process_peak(peak_num,peak_start,peak_end,buff,outfile,new_peaks_file):
+def process_peak(peak_num,peak_total,peak_start,peak_end,buff,outfile,new_peaks_file):
     # what we have: one line per location (good!), with CHR LOC VAL PEAK_NUM
     # peak_end is the last location in the peak, not the upper bound
-    peak_length = peak_end-peak_start+1
     buff_length = len(buff)
     # what if there isn't enough buffer? NOTE: THIS MODIFIES THE PEAK CALLS, SO WE NEED TO USE THE OUTPUT OF THIS SCRIPT TO DEFINE OUR PEAKS FROM NOW ON... (the new_peaks_file)..
     buff_start = int(buff[0].split()[1])
@@ -66,7 +66,13 @@ def process_peak(peak_num,peak_start,peak_end,buff,outfile,new_peaks_file):
         # move in the end of the peak
         peak_end = buff_end-WIN_EDGE
     # this will be the total signal in the peak... can rewrite the dnase_peaks file to include this, i guess
-    peak_total = 0
+    peak_length = peak_end-peak_start+1
+    # need one line for each location in the peak... regardless of buffer info
+    for location in range(peak_length):
+        flanks = get_flanks()
+        loc_line = chro+' '+str(location)+' '+str(peak_num)+' '+flanks+'\n'
+        outfile.write(loc_line)
+
     for i in range(buff_length):
         element = buff[i]
         [chr,loc,val] = element.split()
@@ -94,23 +100,23 @@ bedgraph = gzip.open(sys.argv[1],'r')
 out_file = open(sys.argv[1]+'.processed','w')
 
 first_peak = peaks_file.readline()
-[peak_start,peak_end] = get_peak_range(first_peak)
+[peak_chro,peak_start,peak_end] = get_peak_range(first_peak)
 
 peak_buff = []
 
 line_num = 0
-peak_num = 1
+writ_peaks = 1
 read_peaks = 1
 for line in bedgraph:
     # file's pretty big
     if line_num%100000==0:
-        print line_num
+        print read_peaks, writ_peaks
     line_num = line_num+1
 
     chro = line.split()[0]
     start = int(line.split()[1])
     end = int(line.split()[2])
-    if overlap(start,end,(peak_start-WIN_EDGE),(peak_end+WIN_EDGE)):
+    if chro==peak_chro and overlap(start,end,(peak_start-WIN_EDGE),(peak_end+WIN_EDGE)):
         length = end-start
         val = float(line.split()[3])
         # creating a buffer of all the locs (expanded - one loc per line) in the peak
@@ -120,15 +126,16 @@ for line in bedgraph:
             peak_buff.append(temp_line)
     else:
         if len(peak_buff)>0:
-            process_peak(peak_num,peak_start,peak_end,peak_buff,out_file,new_peaks_file)
+            process_peak(writ_peaks,peak_start,peak_end,peak_buff,out_file,new_peaks_file)
             peak_buff = []
-            peak_num = peak_num + 1
-        if end>peak_end:
+            peak_total = 0
+            writ_peaks = writ_peaks + 1
+        if end>peak_end or not chro==peak_chro:
             # get a new peak
             new_peak = peaks_file.readline()
             read_peaks = read_peaks + 1
             # avoid EOF
             if len(new_peak)>0:
-                [peak_start,peak_end] = get_peak_range(new_peak)
+                [peak_chro,peak_start,peak_end] = get_peak_range(new_peak)
 
 print 'read',read_peaks-1,'and wrote',peak_num-1
