@@ -15,7 +15,7 @@ import math
 
 print 'Expanding peaks!'
 
-if len(sys.argv<3):
+if len(sys.argv)<3:
     sys.exit('Requires list of peaks and window size!')
 
 peakfile = sys.argv[1]
