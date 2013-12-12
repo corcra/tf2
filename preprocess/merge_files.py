@@ -10,7 +10,11 @@ outfile = gzip.open('processed_data.gz','w')
 firstfile = gzip.open(sys.argv[1])
 otherfiles = [gzip.open(arg) for arg in sys.argv[2:]]
 
+line_num = 0
 for line in firstfile:
+    if line_num%10000==0:
+        print line_num
+    line_num = line_num+1
     identifier = line.split()[0:2]
     length = len(line.split())
     outfile.write(line)
