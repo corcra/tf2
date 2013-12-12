@@ -2,7 +2,7 @@
 master_dat<-read.table('tf_names_and_files.txt',as.is=TRUE)
 # yes, this is just the NAME of the list
 # ideally this is the DEFINITIVE list...
-peak_list<-'k562_dnase_peaks.totals'
+peak_list<-'k562_peak_list'
 
 N_FACTORS<-nrow(master_dat)
 for (i in 2:N_FACTORS){
