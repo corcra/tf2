@@ -98,6 +98,7 @@ for (iter in 1:N_ITER){
                     print(peak)
                 }
                 peak_data <- data[[peak]]
+                missing_data <- (peak_data==0)*1
                 peak_length <- ncol(peak_data)
                
                 # initialise the parameters
@@ -112,8 +113,8 @@ for (iter in 1:N_ITER){
 
                 # get new parameters
                 # rows are states, cols are locations
-                alpha_prime <- forward.qhmm(peak_hmm,peak_data)
-                beta_prime <- backward.qhmm(peak_hmm,peak_data)
+                alpha_prime <- forward.qhmm(peak_hmm,peak_data,missing=missing_data)
+                beta_prime <- backward.qhmm(peak_hmm,peak_data,missing=missing_data)
                 if (sum(is.na(alpha_prime))>0){
                     browser()
                     }
@@ -156,8 +157,10 @@ for (iter in 1:N_ITER){
         for (peak in 1:N_PEAKS){
             trans_param <- transition_params[[factor]][[peak]]
             emiss_param <- emission_params[[factor]]
+            peak_data <- data[[peak]]
+            missing_data <- (peak_data==0)*1
             peak_hmm <- initialise_hmm(factor_hmm,N_STATES,N_FEATURES,trans_param,emiss_param)
-            posteriors <- posterior.qhmm(peak_hmm,peak_data,n_threads=2)
+            posteriors <- posterior.qhmm(peak_hmm,peak_data,missing=missing_data,n_threads=2)
             bound_yn <- is_bound(posteriors[,2])
             all_peaks_bound[peak] <- bound_yn
             }
