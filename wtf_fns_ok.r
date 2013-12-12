@@ -69,8 +69,10 @@ build_hmm<-function(N_STATES,N_FEATURES,pwm){
     data_shape <- list(rep(1,N_FEATURES+1),NULL)
 
     # construct the valid transitions! this is a little tricky because the number of states depends on the transcription factor
+   # valid_transitions <- matrix(rep(0,N_STATES*N_STATES),nrow=N_STATES,ncol=N_STATES,byrow=T)
     valid_transitions <- matrix(c(rep(1,N_STATES),rep(0,N_STATES*(N_STATES-1))),nrow=N_STATES,ncol=N_STATES,byrow=F)
     valid_transitions[1,] <- c(1,2,rep(0,(N_STATES-3)),3)
+    #valid_transitions[2:(N_STATES-2),3:(N_STATES-1)] <- diag(N_STATES-3)
     valid_transitions[2:(N_STATES-2),3:(N_STATES-1)] <- 2*diag(N_STATES-3)
     valid_transitions[(N_STATES-1),] <- c(1,rep(0,(N_STATES-1)))
     valid_transitions[N_STATES,] <- c(1, rep(0,(N_STATES-2)), 2)
@@ -85,6 +87,7 @@ build_hmm<-function(N_STATES,N_FEATURES,pwm){
     hmm <- new.qhmm(data_shape,valid_transitions,transition_functions,emission_functions,support.missing=TRUE)
 
     # set the fixed parameters
+#    set.transition.params.qhmm(hmm,2:(N_STATES-1),1,fixed=T)
     set.transition.params.qhmm(hmm,2:(N_STATES-2),c(0.01,0.99),fixed=c(TRUE,TRUE))
     set.transition.params.qhmm(hmm,N_STATES-1,1,fixed=T)
     # include the pwm info!

@@ -7,12 +7,12 @@ bound_from_chip <- as.matrix(read.table('chip_binding_mat',header=T))
 # ---- Constants! ---- #
 FACTORS <- colnames(bound_from_chip)
 N_FACTORS <- length(FACTORS)
-#N_PEAKS <- nrow(bound_from_chip)
-N_PEAKS <- 100
+N_PEAKS <- nrow(bound_from_chip)
+#N_PEAKS <- 100
 N_ITER <- 5
 N_FEATURES <- 1
 EM_THRESHOLD <- 0.5
-TAU <- 0.3
+TAU <- 0.2
 
 # ---- Load functions! ---- #
 source('wtf_fns_ok.r')
@@ -133,9 +133,7 @@ for (iter in 1:N_ITER){
                 ll_cumulative <- ll_cumulative + loglik
             }
             # update emission parameters after all peaks
-            emission_params[[factor]] <- theta_numer/theta_denom
-#            print(emission_params[[factor]])
-#            browser()
+#            emission_params[[factor]] <- theta_numer/theta_denom
 
             # check how the likelihood has changed...
             ll <- ll_cumulative
@@ -150,7 +148,7 @@ for (iter in 1:N_ITER){
             ll.all <- c(ll.all,ll)
         }
         cat("EM has converged?\n")
-        plot(ll.all,type='l',xlab='Iteration',ylab='Log-likelihood')
+#        plot(ll.all,type='l',xlab='Iteration',ylab='Log-likelihood')
         cat('lhood decreased by',decrease,'in total\n')
 
         # now we have to check if it's bound or not...
@@ -175,8 +173,10 @@ for (iter in 1:N_ITER){
     # for the purpose of somehow gauging if convergence is occurring
 #    visualise_binding(binding_status)
 }
-plot(delta.binding)
+#plot(delta.binding)
+
 # ---- After iteration: retrieve predictions ---- #
 cm <- get_confusion_matrix(binding_status,bound_from_chip,FACTORS)
+write(cm,file="cm.txt")
 save.image('wtf.RData')
 # This depends on how I'm storing the data, but basically need a prediction from each TF for each location, maybe whatever else... atm just doing it per-peak... can we do better than that? do we have a validation set?
