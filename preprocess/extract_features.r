@@ -10,9 +10,9 @@ get_feature1 <- function(signal_data,peak_mean){
 
 get_f2_and_f3 <- function(signal_data){
     win_size <- nrow(signal_data)
-    # centred
     f2<-vector("integer")
     f3<-vector("integer")
+    # centred
     x <- seq(win_size)-ceiling(win_size/2)
     for (loc in 1:ncol(signal_data)){
         linear <- lm(signal_data[,loc] ~ x)
