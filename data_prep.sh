@@ -9,7 +9,7 @@ awk '{ print $1":"$2"-"$3+1 }' $DNASE_PEAKS> k562_peak_list
 # expand the peaks! ... this creates $PEAK_LIST.exp (by the way, this produces 'expanded' peaks, including the flanking regions, so they need to be re-restricted later!
 python expand_peak.py k562_peak_list $WIN_SIZE
 echo "Restricting DNAse signal to be in/near peaks!"
-zcat $DNASE_SIGNAL | bedmap --echo --skip-unmapped - $DNASE_PEAKS.exp > signal_near_peaks.bed
+zcat $DNASE_SIGNAL | bedmap --echo --skip-unmapped - k562_peak_list.exp > signal_near_peaks.bed
 gzip signal_near_peaks.bed
 # expand this bedgraph (one score per location...) ... this generates $SIGNAL_IN_PEAKS.exp.gz
 python expand_bedgraph.py signal_near_peaks.bed.gz
@@ -22,7 +22,7 @@ echo "Getting flanking signals!"
 bedmap --range 25 --echo --echo-map-score scored_in_peaks.bed | sed 's/[;|\|]/\t/g' > signal_with_flanks.bed
 # now re-restrict this to the original peak regions
 echo "Re-restricting locations (with flank info) to be inside peaks!"
-bedmap --echo --skip-unmapped signal_with_flanks $DNASE_PEAKS  > dnase_signal_final.bed
+bedmap --echo --skip-unmapped signal_with_flanks.bed $DNASE_PEAKS  > dnase_signal_final.bed
 # ready to go to R!
 gzip dnase_signal_final.bed
 # clean up!
@@ -31,6 +31,7 @@ rm -v prescored.bed
 rm -v scored_in_peaks.bed
 rm -v signal_with_flanks.bed
 rm -v signal_near_peaks.bed.exp.gz
+rm -v signal_near_peaks.bed.gz
 #
 exit
 # get the features!
