@@ -2,23 +2,13 @@
 args<-commandArgs(TRUE)
 
 # --- Functions --- #
-# Remember: signal_data has one line per location, and the data we're assessing is the columns...
 
 # above average signal?
-get_feature1 <- function(data,peak_start,peak_end){
-    # the first 6 columns are just identifier... who needs identifier, right?
-    # pretty sure i'm being paranoid here
-#    inrange <- (data[,2] >= peak_start)&&(data[,2]<=peak_end)
-#    if (mean(inrange)<1){
-#        browser()
-#        }
-    signal_data <- matrix(sapply(data[,5:ncol(data)],as.numeric),nrow=nrow(data))
-    signal_data[signal_data==0]<-NA
-    peak_mean <- mean(signal_data[,1],na.rm=TRUE)
-    f1<-ifelse(rowMeans(signal_data[,2:ncol(signal_data)],na.rm=TRUE)>peak_mean,2,1)
-    f1[is.na(f1)]<-0
+get_feature1 <- function(signal_data,peak_mean){
+    row_means <- rowMeans(signal_data)
+    f1<-ifelse(row_means>peak_mean,2,ifelse(row_means>0,1,0))
     return(f1)
-    }
+}
 
 # --- Constants and data --- #
 
@@ -28,7 +18,7 @@ peaklist<-read.table("k562_peak_list",as.is=TRUE)
 N_PEAKS<-nrow(peaklist)
 for (peak in 1:N_PEAKS){
     hor_str <- peaklist[peak,1]
-    if (peak%%10000==0){
+    if (peak%%1000==0){
         cat("Peak",peak,"\n")
         cat(hor_str,"\n")
     }
@@ -40,7 +30,9 @@ for (peak in 1:N_PEAKS){
     # this appaers to be the range
     peak_length <- diff(c(peak_start,peak_end))-1
     buff <- matrix(scan(signal,sep="\t",what=character(),nlines=peak_length,quiet=TRUE),nrow=peak_length,byrow=T)
-    f1<-get_feature1(buff,peak_start,peak_range)
+    peak_mean <- mean(as.numeric(buff[,5]))
+    signal_data<- apply(buff[,5:ncol(buff)],1,as.numeric)
+    f1<-get_feature1(signal_data,peak_mean)
     chro<-broken_hor_str[1]
     cat(chro,"\t",peak_start,"\t",peak_end,"\t",f1,"\n",file=feature1)
 }
