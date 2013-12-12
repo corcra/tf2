@@ -39,21 +39,18 @@ echo "Extracting featuers with R!"
 R --file=wtf_features.r --args dnase_signal_final.gz
 
 # get the sequence!
-twoBitToFa /gbdb/hg19/hg19.2bit $PEAK_SEQ -seqList=$PEAK_LIST -noMask
-gzip $PEAK_SEQ
+awk '{ print $1":"$2"-"$3 }' $DNASE_PEAKS > peaklist_for_seq
+twoBitToFa /gbdb/hg19/hg19.2bit peakseq.fa -seqList=peaklist_for_seq -noMask
+gzip peakseq.fa
 # format the sequence! ... this creates a file called $PEAK_SEQ.gz.oneperline and also $PEAK_LIST.totals
-python format_fasta.py $PEAK_SEQ.gz
-# process this into R-ready format! warning: this takes ages. second warning: file locations... check them! ... this creates a file called $SIGNAL_IN_PEAKS.processed ... also $PEAK_LIST.totals ... both of these need to be read into R!
-python format_bedgraph.py $SIGNAL_IN_PEAKS.gz $PEAK_LIST
-# this file is a weird format, one line per location... the result of the R processing will be one line per peak!
-gzip $SIGNAL_IN_PEAKS.gz.processed
+python format_fasta.py peakseq.fa.gz
 
 # SPECIFIC TO MY DATA: the above bedgraph: signal_in_peaks appears to be a subset of the sequence data! ... except for a single region on the X chromosome? (not sure what's going on here!)
 # THEREFORE: we shall trim down the sequence data so that it only contains those lines also in the signal data... (at this point, individual lines refer to peaks)... format_bedgraph produces a list of recorded peaks, so we use this
-bedmap --echo --skip-unmapped $PEAK_SEQ.gz.oneperline $PEAK_LIST.totals > $PEAK_SEQ_WITHSIGNAL
-gzip $PEAK_SEQ_WITHSIGNAL
+bedmap --echo --skip-unmapped $PEAK_SEQ.gz.oneperline $DNASE_PEAKS > seq.bed
+gzip seq.bed
 # clean up
-rm $PEAK_SEQ.gz.oneperline
+rm -v peakseq.fa.gz.oneperline
 
 # by now we should have
 # signal_in_peaks and sequence_by_peaks, both gzipped 'bed' files...
