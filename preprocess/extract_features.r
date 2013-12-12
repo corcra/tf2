@@ -4,7 +4,7 @@ options(warn=-1)
 # above average signal?
 get_feature1 <- function(signal_data,peak_mean){
     col_means <- colMeans(signal_data)
-    f1<-ifelse(col_means>peak_mean,2,ifelse(col_means>0,1,0))
+    f1<-ifelse(col_means>peak_mean,2,1)
     return(f1)
 }
 
