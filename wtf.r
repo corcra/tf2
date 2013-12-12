@@ -8,10 +8,11 @@ bound_from_chip <- as.matrix(read.table('chip_binding_mat',header=T))
 FACTORS <- colnames(bound_from_chip)
 N_FACTORS <- length(FACTORS)
 N_PEAKS <- nrow(bound_from_chip)
+#N_PEAKS <- 100
 N_ITER <- 5
 N_FEATURES <- 1
 EM_THRESHOLD <- 0.5
-TAU <- 0.3
+TAU <- 0.2
 
 # ---- Load functions! ---- #
 source('wtf_fns_ok.r')
@@ -28,8 +29,9 @@ for (peak in 1:N_PEAKS){
     # columns -> number of locations, rows -> number of emission variables (first one will be DNA)
     data[[peak]] <- matrix(buff,nrow=(N_FEATURES+1),byrow=T)
     len<-ncol(data[[peak]])
-    #data[[peak]][2,] <- rbinom(len,1,0.5)+1
-    data[[peak]][2,] <- seq(len)%%2+1
+#    data[[peak]][2,] <- rbinom(len,1,0.5)+1
+#    data[[peak]][2,] <- seq(len)%%2+1
+    data[[peak]][2,] <- (rbinom(len,1,0.5)*seq(len))%%2+1
     }
 close(fc)
 cat("Data loaded!\n")
@@ -82,7 +84,6 @@ for (iter in 1:N_ITER){
         EM.iter <- 0
         ll.all <- vector("numeric")
         decrease <- 0
-        browser()
         # ---- Second middle loop: EM! ---- #
         while(abs(delta.ll)>EM_THRESHOLD){
             EM.iter <- EM.iter + 1
@@ -104,37 +105,35 @@ for (iter in 1:N_ITER){
 #                    cat("No transmission parameters saved for ",factor," - making some up!\n")
                     transition_params[[factor]][[peak]] <- list(B=c(0.4,0.2,0.4),G=c(0.5,0.5))
                 }
+
                 trans_param <- transition_params[[factor]][[peak]]
                 emiss_param <- emission_params[[factor]]
-                # set the parameters of the model
                 peak_hmm <- initialise_hmm(factor_hmm,N_STATES,N_FEATURES,trans_param,emiss_param)
-                # getting alpha and betas in here, basically
-#                alpha_prime <- forward.qhmm(peak_hmm,peak_data)
-#                beta_prime <- backward.qhmm(peak_hmm,peak_data)
-#                loglik <- attr(alpha_prime,"loglik")
 
-#                gamma <- exp(alpha_prime + beta_prime - loglik)
-
-                gamma_and_xi <- get_gamma_and_xi(peak_hmm,peak_data,peak_length,N_STATES,N_FEATURES)
-                theta <- get_theta(gamma_and_xi$"gamma",peak_data,N_STATES,N_FEATURES)
+                # get new parameters
+                # rows are states, cols are locations
+                alpha_prime <- forward.qhmm(peak_hmm,peak_data)
+                beta_prime <- backward.qhmm(peak_hmm,peak_data)
+                if (sum(is.na(alpha_prime))>0){
+                    browser()
+                    }
+                loglik <- attr(alpha_prime,"loglik")
+               
+                # emissions
+                gamma <- exp(alpha_prime + beta_prime - loglik)
+                theta <- get_theta(gamma,peak_data,N_STATES,N_FEATURES)
                 #theta is additive over peaks, remember
                 theta_numer <- theta_numer + theta$"theta_numer"
                 theta_denom <- theta_denom + theta$"theta_denom"
-#
-                # get new transmission parameters (including a_BF)
-                transition_params[[factor]][[peak]] <- get_new_transition_params(peak,peak_length,factor,factor_size,binding_status,coincidence,gamma_and_xi,TAU)
 
+                # transitions
+                xis <- get_xi(peak_hmm,alpha_prime,beta_prime,loglik,peak_data,N_STATES,N_FEATURES)
+                transition_params[[factor]][[peak]] <- get_new_transition_params(peak,peak_length,factor,factor_size,binding_status,coincidence,xis,TAU)
                 # increase the log-likelihood...
-                ll_cumulative <- ll_cumulative + gamma_and_xi$"ll"
+                ll_cumulative <- ll_cumulative + loglik
             }
             # update emission parameters after all peaks
-            # excluding emission_params for now... will EM converge?
-            emission_params[[factor]] <- theta_numer/theta_denom
-#            emission_params[[factor]][is.nan(emission_params[[factor]])] <- 0
-#            if(sum(emission_params[[factor]]==1)>0){
-#                print('grr')
-#                browser()
-#            }
+#            emission_params[[factor]] <- theta_numer/theta_denom
 
             # check how the likelihood has changed...
             ll <- ll_cumulative
@@ -149,10 +148,11 @@ for (iter in 1:N_ITER){
             ll.all <- c(ll.all,ll)
         }
         cat("EM has converged?\n")
-        plot(ll.all,type='l',xlab='Iteration',ylab='Log-likelihood')
+#        plot(ll.all,type='l',xlab='Iteration',ylab='Log-likelihood')
         cat('lhood decreased by',decrease,'in total\n')
 
         # now we have to check if it's bound or not...
+        # there is almost certainly a more efficient way to do this
         for (peak in 1:N_PEAKS){
             trans_param <- transition_params[[factor]][[peak]]
             emiss_param <- emission_params[[factor]]
@@ -173,8 +173,10 @@ for (iter in 1:N_ITER){
     # for the purpose of somehow gauging if convergence is occurring
 #    visualise_binding(binding_status)
 }
-plot(delta.binding)
+#plot(delta.binding)
+
 # ---- After iteration: retrieve predictions ---- #
 cm <- get_confusion_matrix(binding_status,bound_from_chip,FACTORS)
-save('wtf.RData')
+write(cm,file="cm.txt")
+save.image('wtf.RData')
 # This depends on how I'm storing the data, but basically need a prediction from each TF for each location, maybe whatever else... atm just doing it per-peak... can we do better than that? do we have a validation set?
