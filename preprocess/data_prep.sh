@@ -35,7 +35,7 @@ rm -v scored_in_peaks.bed
 rm -v signal_with_flanks.bed
 # get the features!
 echo "Extracting features with R!"
-R --file=wtf_features.r --args dnase_signal_final.gz
+R --file=extract_features.r --args dnase_signal_final.gz
 
 # next part... sequence
 echo "Getting sequence!"
