@@ -74,8 +74,6 @@ build_hmm<-function(N_STATES,N_FEATURES,pwm){
     valid_transitions[2:(N_STATES-2),3:(N_STATES-1)] <- 2*diag(N_STATES-3)
     valid_transitions[(N_STATES-1),] <- c(1,rep(0,(N_STATES-1)))
     valid_transitions[N_STATES,] <- c(1, rep(0,(N_STATES-2)), 2)
-    print(valid_transitions)
-    browser()
     # everything is discrete here!
     transition_functions <- rep("discrete",N_STATES)
     # noo, a for loop!
