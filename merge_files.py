@@ -5,7 +5,7 @@
 import gzip
 import sys
 
-outfile = open('merged_files','w')
+outfile = gzip.open('processed_data.gz','w')
 
 firstfile = gzip.open(sys.argv[1])
 otherfiles = [gzip.open(arg) for arg in sys.argv[2:]]
