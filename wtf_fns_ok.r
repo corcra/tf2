@@ -102,10 +102,10 @@ initialise_hmm<-function(hmm,N_STATES,N_FEATURES,transition_params,emission_para
     for (state in 1:N_STATES){
         for (feature in 1:N_FEATURES){
             theta <- emission_params[state,feature]
-            if(theta==1|theta==0){
-                print("we're about to get an emission probability of zero!")
-                browser()
-                }
+#            if(theta==1|theta==0){
+#                print("we're about to get an emission probability of zero!")
+#                browser()
+#                }
            set.emission.params.qhmm(hmm, state, c(1-theta,theta),slot=(feature+1))
             }
         }
