@@ -34,11 +34,11 @@ for (peak in 1:N_PEAKS){
     }
     # this is just string formatting
     broken_hor_str <- unlist(strsplit(hor_str,":"))
-    peak_range <- unlist(lapply(strsplit(broken_hor_str[2],"-"),as.integer))
-    peak_start <- peak_range[1]
-    peak_end <- peak_range[2]
+    peak_range <- unlist(strsplit(broken_hor_str[2],"-"))
+    peak_start <- as.integer(peak_range[1])
+    peak_end <- as.integer(peak_range[2])
     # this appaers to be the range
-    peak_length <- diff(peak_range)-1
+    peak_length <- diff(c(peak_start,peak_end))-1
     buff <- matrix(scan(signal,sep="\t",what=character(),nlines=peak_length,quiet=TRUE),nrow=peak_length,byrow=T)
     f1<-get_feature1(buff,peak_start,peak_range)
     chro<-broken_hor_str[1]
