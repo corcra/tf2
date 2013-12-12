@@ -5,12 +5,15 @@ options(warn=-1)
 
 # above average signal?
 get_feature1 <- function(signal_data,peak_mean){
-    row_means <- rowMeans(signal_data)
-    f1<-ifelse(row_means>peak_mean,2,ifelse(row_means>0,1,0))
+    col_means <- colMeans(signal_data)
+    f1<-ifelse(col_means>peak_mean,2,ifelse(col_means>0,1,0))
     return(f1)
 }
 
 get_feature2 <- function(signal_data){
+    for (loc in 1:ncol(signal_data)){
+
+        }
     
 
     }
