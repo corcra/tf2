@@ -11,17 +11,28 @@ get_feature1 <- function(signal_data,peak_mean){
 }
 
 get_feature2 <- function(signal_data){
+    win_size <- nrow(signal_data)
+    # centred
+    f2<-vector("integer")
+    f3<-vector("integer")
+    x <- seq(win_size)-ceiling(win_size/2)
     for (loc in 1:ncol(signal_data)){
-
-        }
-    
-
+        linear <- lm(signal_data[,loc] ~ x)
+        inc <- (linear$coefficients["x"]>1/win_size)*1
+        quad <- lm(signal_data[,loc] ~ x^2)
+        quadratic <- abs(quad$coefficients["x"]>0.3)*1
+        f2<-c(f2,inc)
+        f3<-c(f3,quadratic)
+        browser()
     }
+    return(list("f2"=f2,"f3"=f3))
+}
 
 # --- Constants and data --- #
 
 signal<-file("dnase_signal_final.bed.gz",open='r')
-feature1<-file("feature1.bed",open="w")
+#feature1<-file("feature1.bed",open="w")
+feature2<-file("feature2.bed",open="w")
 peaklist<-read.table("k562_peak_list",as.is=TRUE)
 N_PEAKS<-nrow(peaklist)
 for (peak in 1:N_PEAKS){
@@ -39,8 +50,11 @@ for (peak in 1:N_PEAKS){
     peak_length <- diff(c(peak_start,peak_end))-1
     buff <- matrix(scan(signal,sep="\t",what=character(),nlines=peak_length,quiet=TRUE),nrow=peak_length,byrow=T)
     peak_mean <- mean(as.numeric(buff[,5]))
+    # signal data is now actually columns for locations and rows for the values...
     signal_data<- apply(buff[,5:ncol(buff)],1,as.numeric)
-    f1<-get_feature1(signal_data,peak_mean)
+#    f1<-get_feature1(signal_data,peak_mean)
+    f2<-get_feature2(signal_data)
     chro<-broken_hor_str[1]
     cat(chro,"\t",peak_start,"\t",peak_end,"\t",f1,"\n",file=feature1)
+    cat(chro,"\t",peak_start,"\t",peak_end,"\t",f2,"\n",file=feature2)
 }
