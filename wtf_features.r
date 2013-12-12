@@ -1,5 +1,5 @@
 # Functions pertaining to the pre-processing of the DNase-1 data
-args<-commandArgs(TRUE)
+options(warn=-1)
 
 # --- Functions --- #
 
@@ -9,6 +9,11 @@ get_feature1 <- function(signal_data,peak_mean){
     f1<-ifelse(row_means>peak_mean,2,ifelse(row_means>0,1,0))
     return(f1)
 }
+
+get_feature2 <- function(signal_data){
+    
+
+    }
 
 # --- Constants and data --- #
 
