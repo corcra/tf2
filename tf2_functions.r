@@ -198,3 +198,4 @@ get_confusion_matrix <- function(pred,known,FACTORS){
         cm[[factor]]<-list("TP"=TP,"FP"=FP,"TN"=TN,"FN"=FN,"sens"=100*TP/(TP+FN),"spec"=100*TN/(FP+TN))
         }
     return(cm)
+}
