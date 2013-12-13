@@ -2,7 +2,7 @@
 
 # ---- For my implementation: fix the other factors ---- #
 cat('Getting binding status from ChIP-seq data!\n')
-bound_from_chip <- as.matrix(read.table('chip_binding_mat',header=T))
+bound_from_chip <- as.matrix(read.table('data/chip_binding_mat',header=T))
 
 # ---- Constants! ---- #
 FACTORS <- colnames(bound_from_chip)
