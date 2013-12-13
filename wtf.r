@@ -56,7 +56,7 @@ for (factor in FACTORS){
 
 # for testing: only looping over one TF
 # also: only going to look at a subset of peaks (for tractability...)
-ctcf_peaks <- which(bound_from_chip[,"CTCF"]<-1)
+ctcf_peaks <- which(bound_from_chip[,"CTCF"]==1)
 N_SUBPEAKS <- length(ctcf_peaks)
 TEST_FACTORS<-"CTCF"
 delta.binding<-vector("numeric")
