@@ -57,9 +57,9 @@ R --file=extract_features.r --args dnase_signal_final.gz
 # merge! this produces processed_data.gz which can be fed into the program...
 echo "Merging sequence and DNase features!"
 python merge_files.py seq.bed.gz feature1.bed.gz feature2.bed.gz ... featureN.bed.gz
-zcat processed_data.gz | sed 's/[\t ]\+/ /g' > final_data
-gzip final_data
-rm -v processed_data.gz
+#zcat processed_data.gz | sed 's/[\t ]\+/ /g' > final_data
+#gzip final_data
+#rm -v processed_data.gz
 # final clean up
 # rm -v feature1.bed.gz
 # ...
