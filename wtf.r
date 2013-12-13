@@ -55,6 +55,9 @@ for (factor in FACTORS){
 }
 
 # for testing: only looping over one TF
+# also: only going to look at a subset of peaks (for tractability...)
+ctcf_peaks <- which(bound_from_chip[,"CTCF"]<-1)
+N_SUBPEAKS <- length(ctcf_peaks)
 TEST_FACTORS<-"CTCF"
 delta.binding<-vector("numeric")
 # ---- The outer loop: 'sample' over binding states ---- #
@@ -77,7 +80,7 @@ for (iter in 1:N_ITER){
         # calculate coincidence of this TF with the rest
         coincidence <- get_interactions(factor,binding_status)
         # when we finish EM we will record binding predictions for all peaks
-        all_peaks_bound <- rep(NA,N_PEAKS)
+        all_peaks_bound <- rep(NA,N_SUBPEAKS)
         # initialise the while loop
         delta.ll <- EM_THRESHOLD*2
         ll.old <- -Inf
@@ -93,7 +96,7 @@ for (iter in 1:N_ITER){
             # ll over the peaks
             ll_cumulative <- 0
             # ---- Inner loop: iterate over peaks! ---- #
-            for (peak in 1:N_PEAKS){
+            for (peak in ctcf_peaks){
                 if (peak%%10000==0){
                     print(peak)
                 }
@@ -154,7 +157,7 @@ for (iter in 1:N_ITER){
 
         # now we have to check if it's bound or not...
         # there is almost certainly a more efficient way to do this
-        for (peak in 1:N_PEAKS){
+        for (peak in ctcf_peaks){
             trans_param <- transition_params[[factor]][[peak]]
             emiss_param <- emission_params[[factor]]
             peak_data <- data[[peak]]
