@@ -1,4 +1,4 @@
-# Transcription factor binding site identification! Including interactions!
+# Transcription factor binding site identification! With interactions!
 
 # ---- For my implementation: fix the other factors ---- #
 cat('Getting binding status from ChIP-seq data!\n')
@@ -8,7 +8,6 @@ bound_from_chip <- as.matrix(read.table('data/binding_mat',header=T))
 FACTORS <- colnames(bound_from_chip)
 N_FACTORS <- length(FACTORS)
 N_PEAKS <- nrow(bound_from_chip)
-#N_PEAKS <- 100
 N_ITER <- 5
 N_FEATURES <- 1
 EM_THRESHOLD <- 0.5
@@ -50,9 +49,8 @@ for (factor in FACTORS){
 }
 
 # for testing: only looping over one TF
-# also: only going to look at a subset of peaks (but this will mess up our predictive power)
-ctcf_peaks <- which(bound_from_chip[,"CTCF"]==1)
-N_SUBPEAKS <- length(ctcf_peaks)
+#ctcf_peaks <- which(bound_from_chip[,"CTCF"]==1)
+#N_SUBPEAKS <- length(ctcf_peaks)
 TEST_FACTORS<-"CTCF"
 delta.binding<-vector("numeric")
 # ---- The outer loop: 'sample' over binding states ---- #
@@ -75,7 +73,7 @@ for (iter in 1:N_ITER){
         # calculate coincidence of this TF with the rest
         coincidence <- get_interactions(factor,binding_status)
         # when we finish EM we will record binding predictions for all peaks
-        all_peaks_bound <- rep(NA,N_SUBPEAKS)
+        all_peaks_bound <- rep(NA,N_PEAKS)
         # initialise the while loop
         delta.ll <- EM_THRESHOLD*2
         ll.old <- -Inf
@@ -91,7 +89,7 @@ for (iter in 1:N_ITER){
             # ll over the peaks
             ll_cumulative <- 0
             # ---- Inner loop: iterate over peaks! ---- #
-            for (peak in ctcf_peaks){
+            for (peak in 1:N_PEAKS){
                 if (peak%%10000==0){
                     print(peak)
                 }
@@ -146,13 +144,13 @@ for (iter in 1:N_ITER){
             ll.old <- ll
             ll.all <- c(ll.all,ll)
         }
-        cat("EM has converged?\n")
+        cat("EM has converged!\n")
 #        plot(ll.all,type='l',xlab='Iteration',ylab='Log-likelihood')
         cat('lhood decreased by',decrease,'in total\n')
 
         # now we have to check if it's bound or not...
         # there is almost certainly a more efficient way to do this
-        for (peak in ctcf_peaks){
+        for (peak in 1:N_PEAKS){
             trans_param <- transition_params[[factor]][[peak]]
             emiss_param <- emission_params[[factor]]
             peak_data <- data[[peak]]
@@ -170,7 +168,6 @@ for (iter in 1:N_ITER){
     delta.binding <- c(delta.binding,norm((binding_status-binding_temp),"I"))
 
     binding_status <- binding_temp
-
     # for the purpose of somehow gauging if convergence is occurring
     # visualise_binding(binding_status)
 }
