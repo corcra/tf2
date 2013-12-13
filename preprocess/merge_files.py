@@ -17,7 +17,7 @@ for line in firstfile:
     line_num = line_num+1
     identifier = line.split()[0:2]
     length = len(line.split())
-    outfile.write(line)
+    outfile.write(' '.join(line.split()[3:]))
     for otherfile in otherfiles:
         otherline = otherfile.readline()
         other_ident = otherline.split()[0:2]
@@ -33,4 +33,4 @@ for line in firstfile:
             print otherline.split()
             sys.exit()
         else:
-            outfile.write(otherline)
+            outfile.write(' '.join(otherline.split()[3:]))
