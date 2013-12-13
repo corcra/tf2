@@ -22,7 +22,7 @@ library(rqhmm)
 # ---- Load Data! ---- #
 # right now this data is real sequence data but made-up features
 # ... shoudl account for missing data somehow~
-fc <- file('processed_data_nomissing.gz',open='r')
+fc <- file('data/processed_data.gz',open='r')
 data <- vector("list",N_PEAKS)
 for (peak in 1:N_PEAKS){
     buff <- scan(fc,sep=" ",what=numeric(),nlines=(N_FEATURES+1),quiet=TRUE)
@@ -56,7 +56,7 @@ for (factor in FACTORS){
 
 # for testing: only looping over one TF
 # also: only going to look at a subset of peaks (for tractability...)
-ctcf_peaks <- which(bound_from_chip[,"CTCF"]<-1)
+ctcf_peaks <- which(bound_from_chip[,"CTCF"]==1)
 N_SUBPEAKS <- length(ctcf_peaks)
 TEST_FACTORS<-"CTCF"
 delta.binding<-vector("numeric")
