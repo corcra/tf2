@@ -7,11 +7,13 @@ bound_from_chip <- as.matrix(read.table('data/binding_mat',header=T))
 # ---- Constants! ---- #
 FACTORS <- colnames(bound_from_chip)
 N_FACTORS <- length(FACTORS)
-N_PEAKS <- nrow(bound_from_chip)
+#N_PEAKS <- nrow(bound_from_chip)
+N_PEAKS <- 4
 N_ITER <- 5
 N_FEATURES <- 1
 EM_THRESHOLD <- 0.5
 TAU <- 0.2
+N_CORES <- 2
 
 # ---- Load functions! ---- #
 source('tf2_functions.r')
@@ -92,7 +94,9 @@ for (iter in 1:N_ITER){
 
             # parallel section... this will be lengthy
             # ---- Inner 'loop': iterate over peaks! --- #
-            peak_results <- mclapply(1:N_PEAKS,eval_peak,factor_hmm,data,transition_params[[factor]],emission_params[[factor]],N_STATES,N_FEATURES,factor,factor_size,binding_status,coincidence,TAU)
+            peak_results <- mclapply(1:N_PEAKS,eval_peak,factor_hmm,data,transition_params[[factor]],emission_params[[factor]],N_STATES,N_FEATURES,factor,factor_size,binding_status,coincidence,TAU,mc.cores=N_CORES)
+
+            #browser()
             for (peak in 1:N_PEAKS){
                 this_peak <- peak_results[[peak]]
 
@@ -107,6 +111,9 @@ for (iter in 1:N_ITER){
                 # loglik is additive over peaks
                 loglik<-this_peak$"loglik"
                 ll_cumulative <- ll_cumulative + loglik
+            
+                # bound or not? we only care after EM has converged
+                all_peaks_bound[[peak]] <- this_peak$"bound"
             }
             # update emission parameters after all peaks - if commented out, we're avoiding that (due to numerical issues)
 #            emission_params[[factor]] <- theta_numer/theta_denom
@@ -127,31 +134,23 @@ for (iter in 1:N_ITER){
 #        plot(ll.all,type='l',xlab='Iteration',ylab='Log-likelihood')
         cat('lhood decreased by',decrease,'in total\n')
 
-        # now we have to check if it's bound or not...
-        # there is almost certainly a more efficient way to do this
-        for (peak in 1:N_PEAKS){
-            trans_param <- transition_params[[factor]][[peak]]
-            emiss_param <- emission_params[[factor]]
-            peak_data <- data[[peak]]
-            missing_data <- (peak_data==0)*1
-            peak_hmm <- initialise_hmm(factor_hmm,N_STATES,N_FEATURES,trans_param,emiss_param)
-            posteriors <- posterior.qhmm(peak_hmm,peak_data,missing=missing_data,n_threads=2)
-            bound_yn <- is_bound(posteriors[,2])
-            all_peaks_bound[peak] <- bound_yn
-            }
-
-        #path <- viterbi.qhmm(peak_hmm, peak_data)
         binding_temp[,factor] <- all_peaks_bound
     }
+    # for the purpose of somehow gauging if convergence is occurring
+    # visualise_binding(binding_status)
     # using the infinity norm here, for the... fun?
     delta.binding <- c(delta.binding,norm((binding_status-binding_temp),"I"))
 
     binding_status <- binding_temp
-    # for the purpose of somehow gauging if convergence is occurring
-    # visualise_binding(binding_status)
 }
 
 # ---- After iteration: retrieve predictions ---- #
 cm <- get_confusion_matrix(binding_status,bound_from_chip,FACTORS)
-write(cm,file="cm.txt")
-save.image('wtf.RData')
+browser()
+columns<-cbind("TF","TP","FP","TN","FN","sens","spec")
+write(columns,file="cm.txt",ncolumns=7,sep="\t")
+for (factor in FACTORS){
+    write(c(factor,unlist(cm[[factor]])),file="cm.txt",append=TRUE,sep="\t",ncolumns=7)
+}
+#lapply(seq_along(cm),function(i) {write(cbind(names(cm)[[i]],unlist(cm[[i]])),file="cm.txt",append=TRUE,ncolumns=7,sep="\t")})
+save.image('tf2.RData')
