@@ -16,6 +16,7 @@ TAU <- 0.2
 # ---- Load functions! ---- #
 source('tf2_functions.r')
 library(rqhmm)
+library(parallel)
 
 # ---- Load Data! ---- #
 cat("Getting data!\n")
@@ -88,45 +89,23 @@ for (iter in 1:N_ITER){
             theta_numer <- matrix(rep(0,N_STATES*N_FEATURES),nrow=N_STATES,ncol=N_FEATURES)
             # ll over the peaks
             ll_cumulative <- 0
-            # ---- Inner loop: iterate over peaks! ---- #
+
+            # parallel section... this will be lengthy
+            # ---- Inner 'loop': iterate over peaks! --- #
+            peak_results <- mclapply(1:N_PEAKS,eval_peak,factor_hmm,data,transition_params[[factor]],emission_params[[factor]],N_STATES,N_FEATURES,factor,factor_size,binding_status,coincidence,TAU)
             for (peak in 1:N_PEAKS){
-                if (peak%%10000==0){
-                    print(peak)
-                }
-                peak_data <- data[[peak]]
-                missing_data <- (peak_data==0)*1
-                peak_length <- ncol(peak_data)
-               
-                # initialise the parameters
-                if (is.null(transition_params[[factor]][[peak]])){
-#                    cat("No transmission parameters saved for ",factor," - making some up!\n")
-                    transition_params[[factor]][[peak]] <- list(B=c(0.4,0.2,0.4),G=c(0.5,0.5))
-                }
+                this_peak <- peak_results[[peak]]
 
-                trans_param <- transition_params[[factor]][[peak]]
-                emiss_param <- emission_params[[factor]]
-                peak_hmm <- initialise_hmm(factor_hmm,N_STATES,N_FEATURES,trans_param,emiss_param)
-
-                # get new parameters
-                # rows are states, cols are locations
-                alpha_prime <- forward.qhmm(peak_hmm,peak_data,missing=missing_data)
-                beta_prime <- backward.qhmm(peak_hmm,peak_data,missing=missing_data)
-                if (sum(is.na(alpha_prime))>0){
-                    browser()
-                    }
-                loglik <- attr(alpha_prime,"loglik")
-               
-                # emissions
-                gamma <- exp(alpha_prime + beta_prime - loglik)
-                theta <- get_theta(gamma,peak_data,N_STATES,N_FEATURES)
-                #theta is additive over peaks, remember
+                # theta is additive over peaks, remember
+                theta <- this_peak$"theta"
                 theta_numer <- theta_numer + theta$"theta_numer"
                 theta_denom <- theta_denom + theta$"theta_denom"
 
-                # transitions
-                xis <- get_xi(peak_hmm,alpha_prime,beta_prime,loglik,peak_data,N_STATES,N_FEATURES)
-                transition_params[[factor]][[peak]] <- get_new_transition_params(peak,peak_length,factor,factor_size,binding_status,coincidence,xis,TAU)
-                # increase the log-likelihood...
+                # update transition params per-peak
+                transition_params[[factor]][[peak]] <- this_peak$"new_trans_params"
+                
+                # loglik is additive over peaks
+                loglik<-this_peak$"loglik"
                 ll_cumulative <- ll_cumulative + loglik
             }
             # update emission parameters after all peaks - if commented out, we're avoiding that (due to numerical issues)
