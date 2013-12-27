@@ -199,3 +199,39 @@ get_confusion_matrix <- function(pred,known,FACTORS){
         }
     return(cm)
 }
+
+eval_peak <- function(peak,factor_hmm,data,trans_params,emiss_params,N_STATES,N_FEATURES,factor,factor_size,binding_status,coincidence,TAU){
+    if (peak%%10000==0){
+        print(peak)
+    }
+
+    peak_data <- data[[peak]]
+    missing_data <- (peak_data==0)*1
+    peak_length <- ncol(peak_data)
+
+    # initialise parameters
+    if (is.null(trans_params[[peak]]){
+        cat("No transmission parameters saved for ",factor," - making some up!\n")
+        trans_params[[peak]] <- list(B=c(0.4,0.2,0.4),G=c(0.5,0.5))
+    }
+    
+    # initialise hmm
+    peak_hmm <- initialise_hmm(factor_hmm,N_STATES,N_FEATURES,trans_params[[peak]],emiss_params)
+
+    # get new parameters
+    # rows are states, cols are locations
+    alpha_prime <- forward.qhmm(peak_hmm,peak_data,missing=missing_data)
+    beta_prime <- backward.qhmm(peak_hmm,peak_data,missing=missing_data)
+    loglik <- attr(alpha_prime,"loglik")
+
+    # emissions
+    gamma <- exp(alpha_prime + beta_prime - loglik)
+    theta <- get_theta(gamma,peak_data,N_STATES,N_FEATURES)
+
+    # transitions
+    xis <- get_xi(peak_hmm,alpha_prime,beta_prime,loglik,peak_data,N_STATES,N_FEATURES)
+    new_trans_params <- get_new_transition_params(peak,peak_length,factor,factor_size,binding_status,coincidence,xis,TAU)
+
+    # values to return
+    return_vals <- list("theta"=theta,"new_trans_params"=new_trans_params,"loglik"=loglik)
+}
