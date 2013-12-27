@@ -5,6 +5,7 @@ options(warn=-1)
 get_feature1 <- function(signal_data,peak_mean){
     col_means <- colMeans(signal_data)
     f1<-ifelse(col_means>peak_mean,2,1)
+    f1[is.na(f1)]<-0
     return(f1)
 }
 
@@ -29,8 +30,8 @@ get_f2_and_f3 <- function(signal_data){
 
 signal<-file("dnase_signal_final.bed.gz",open='r')
 feature1<-file("feature1.bed",open="w")
-#feature2<-file("feature2.bed",open="w")
-#feature3<-file("feature3.bed",open="w")
+feature2<-file("feature2.bed",open="w")
+feature3<-file("feature3.bed",open="w")
 peaklist<-read.table("k562_peak_list",as.is=TRUE)
 N_PEAKS<-nrow(peaklist)
 for (peak in 1:N_PEAKS){
@@ -50,11 +51,11 @@ for (peak in 1:N_PEAKS){
     # signal data is now actually columns for locations and rows for the values...
     signal_data<- apply(buff[,5:ncol(buff)],1,as.numeric)
     f1<-get_feature1(signal_data,peak_mean)
-#    f2_and_f3<-get_f2_and_f3(signal_data)
+    f2_and_f3<-get_f2_and_f3(signal_data)
     chro<-broken_hor_str[1]
-#    f2<-f2_and_f3$"f2"
-#    f3<-f2_and_f3$"f3"
+    f2<-f2_and_f3$"f2"
+    f3<-f2_and_f3$"f3"
     cat(chro,"\t",peak_start,"\t",peak_end,"\t",f1,"\n",file=feature1)
-#    cat(chro,"\t",peak_start,"\t",peak_end,"\t",f2,"\n",file=feature2)
-#    cat(chro,"\t",peak_start,"\t",peak_end,"\t",f3,"\n",file=feature3)
+    cat(chro,"\t",peak_start,"\t",peak_end,"\t",f2,"\n",file=feature2)
+    cat(chro,"\t",peak_start,"\t",peak_end,"\t",f3,"\n",file=feature3)
 }
