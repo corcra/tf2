@@ -13,10 +13,11 @@ N_ITER <- 5
 N_FEATURES <- 1
 EM_THRESHOLD <- 0.5
 TAU <- 0.2
-N_CORES <- 2
+N_CORES <- 8
 
 # ---- Load functions! ---- #
 source('tf2_functions.r')
+.libPaths(new="/home/sh985/R/x86_64-unknown-linux-gnu-library/3.0")
 library(rqhmm)
 library(parallel)
 
