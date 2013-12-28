@@ -218,6 +218,11 @@ eval_peak <- function(peak,factor_hmm,data,trans_params,emiss_params,N_STATES,N_
     }
     
     # initialise hmm
+    if (sum(unlist(trans_params[[peak]])==0)>0){
+        print("PROBLEM AHOY!")
+        print(trans_params[[peak]])
+    }
+
     peak_hmm <- initialise_hmm(factor_hmm,N_STATES,N_FEATURES,trans_params[[peak]],emiss_params)
 
     # get new parameters
