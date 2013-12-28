@@ -21,7 +21,7 @@ for (i in 1:N_FACTORS){
     add_name <- paste("awk 'BEGIN{ print \"",tf_name,"\" }{ print }' boundpeaks.bed > boundpeaks_withname.bed",sep="")
     system(add_name)
     if (i==1){
-        system("mv boundpeaks_withname.bed binidng_mat")
+        system("mv boundpeaks_withname.bed binding_mat")
     }
     else{
         forming_matrix <- "paste binding_mat boundpeaks_withname.bed > temp_mat"

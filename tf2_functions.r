@@ -152,6 +152,8 @@ get_theta <- function(gamma,data,N_STATES,N_FEATURES){
         for (state in 1:N_STATES){
             theta_n[state,feature]<-sum(gamma[state,]*X)
             if (is.na(theta_n[state,feature])){
+                print(gamma[state,])
+                print(X)
                 browser()
                 }
             if (theta_n[state,feature]==theta_d[state]){
@@ -165,7 +167,7 @@ get_theta <- function(gamma,data,N_STATES,N_FEATURES){
     return(list("theta_numer"=theta_n,"theta_denom"=theta_d))
 }
 
-get_xi <- function(hmm,alpha_prime,beta_prime,loglik,peak_data,N_STATES,N_FEATURES){
+get_xi <- function(hmm,alpha_prime,beta_prime,loglik,peak_data,N_STATES,N_FEATURES,peak_length){
     # get emission probabilities (this is the likelihood of the data given diff states, for each loc)
     emissions_B <- get_emission_prob(hmm,peak_data,peak_length,1,N_FEATURES)
     emissions_G <- get_emission_prob(hmm,peak_data,peak_length,N_STATES,N_FEATURES)
@@ -198,4 +200,44 @@ get_confusion_matrix <- function(pred,known,FACTORS){
         cm[[factor]]<-list("TP"=TP,"FP"=FP,"TN"=TN,"FN"=FN,"sens"=100*TP/(TP+FN),"spec"=100*TN/(FP+TN))
         }
     return(cm)
+}
+
+eval_peak <- function(peak,factor_hmm,data,trans_params,emiss_params,N_STATES,N_FEATURES,factor,factor_size,binding_status,coincidence,TAU){
+    if (peak%%10000==0){
+        print(peak)
+    }
+
+    peak_data <- data[[peak]]
+    missing_data <- (peak_data==0)*1
+    peak_length <- ncol(peak_data)
+
+    # initialise parameters
+    if (is.null(trans_params[[peak]])){
+#        cat("No transition parameters saved for ",factor," - making some up!\n")
+        trans_params[[peak]] <- list(B=c(0.4,0.2,0.4),G=c(0.5,0.5))
+    }
+    
+    # initialise hmm
+    peak_hmm <- initialise_hmm(factor_hmm,N_STATES,N_FEATURES,trans_params[[peak]],emiss_params)
+
+    # get new parameters
+    # rows are states, cols are locations
+    alpha_prime <- forward.qhmm(peak_hmm,peak_data,missing=missing_data)
+    beta_prime <- backward.qhmm(peak_hmm,peak_data,missing=missing_data)
+    loglik <- attr(alpha_prime,"loglik")
+
+    # emissions
+    gamma <- exp(alpha_prime + beta_prime - loglik)
+    theta <- get_theta(gamma,peak_data,N_STATES,N_FEATURES)
+
+    # transitions
+    xis <- get_xi(peak_hmm,alpha_prime,beta_prime,loglik,peak_data,N_STATES,N_FEATURES,peak_length)
+    new_trans_params <- get_new_transition_params(peak,peak_length,factor,factor_size,binding_status,coincidence,xis,TAU)
+
+    # check if bound (the result of this only makes sense after EM has converged)
+    posteriors <- gamma[2,]
+    bound_yn <- is_bound(posteriors)
+    
+    # values to return
+    return_vals <- list("theta"=theta,"new_trans_params"=new_trans_params,"loglik"=loglik,"bound"=bound_yn)
 }
