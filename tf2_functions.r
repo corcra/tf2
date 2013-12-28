@@ -152,6 +152,8 @@ get_theta <- function(gamma,data,N_STATES,N_FEATURES){
         for (state in 1:N_STATES){
             theta_n[state,feature]<-sum(gamma[state,]*X)
             if (is.na(theta_n[state,feature])){
+                print(gamma[state,])
+                print(X)
                 browser()
                 }
             if (theta_n[state,feature]==theta_d[state]){
@@ -211,7 +213,7 @@ eval_peak <- function(peak,factor_hmm,data,trans_params,emiss_params,N_STATES,N_
 
     # initialise parameters
     if (is.null(trans_params[[peak]])){
-        cat("No transmission parameters saved for ",factor," - making some up!\n")
+#        cat("No transition parameters saved for ",factor," - making some up!\n")
         trans_params[[peak]] <- list(B=c(0.4,0.2,0.4),G=c(0.5,0.5))
     }
     
