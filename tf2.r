@@ -7,8 +7,8 @@ bound_from_chip <- as.matrix(read.table('data/binding_mat',header=T))
 # ---- Constants! ---- #
 FACTORS <- colnames(bound_from_chip)
 N_FACTORS <- length(FACTORS)
-#N_PEAKS <- nrow(bound_from_chip)
-N_PEAKS <- 4
+N_PEAKS <- nrow(bound_from_chip)
+#N_PEAKS <- 4
 N_ITER <- 5
 N_FEATURES <- 1
 EM_THRESHOLD <- 0.5
@@ -146,11 +146,9 @@ for (iter in 1:N_ITER){
 
 # ---- After iteration: retrieve predictions ---- #
 cm <- get_confusion_matrix(binding_status,bound_from_chip,FACTORS)
-browser()
 columns<-cbind("TF","TP","FP","TN","FN","sens","spec")
 write(columns,file="cm.txt",ncolumns=7,sep="\t")
 for (factor in FACTORS){
     write(c(factor,unlist(cm[[factor]])),file="cm.txt",append=TRUE,sep="\t",ncolumns=7)
 }
-#lapply(seq_along(cm),function(i) {write(cbind(names(cm)[[i]],unlist(cm[[i]])),file="cm.txt",append=TRUE,ncolumns=7,sep="\t")})
 save.image('tf2.RData')
