@@ -2,7 +2,8 @@
 
 # ---- For my implementation: fix the other factors ---- #
 cat('Getting binding status from ChIP-seq data!\n')
-bound_from_chip <- as.matrix(read.table('data/binding_mat',header=T))
+#bound_from_chip <- as.matrix(read.table('data/binding_mat',header=T))
+bound_from_chip <- as.matrix(read.table('fake_data/fake_binding',header=T))
 
 # ---- Constants! ---- #
 FACTORS <- colnames(bound_from_chip)
@@ -10,7 +11,7 @@ N_FACTORS <- length(FACTORS)
 N_PEAKS <- nrow(bound_from_chip)
 #N_PEAKS <- 4
 N_ITER <- 5
-N_FEATURES <- 1
+N_FEATURES <- 3
 EM_THRESHOLD <- 0.5
 TAU <- 0.2
 N_CORES <- 2
@@ -22,13 +23,13 @@ library(parallel)
 
 # ---- Load Data! ---- #
 cat("Getting data!\n")
-fc <- file('data/processed_data.gz',open='r')
+#fc <- file('data/processed_data.gz',open='r')
+fc <- file('fake_data/fd.gz',open='r')
 data <- vector("list",N_PEAKS)
 for (peak in 1:N_PEAKS){
     buff <- scan(fc,sep=" ",what=numeric(),nlines=(N_FEATURES+1),quiet=TRUE)
     # columns -> number of locations, rows -> number of emission variables (first one will be DNA)
     data[[peak]] <- matrix(buff,nrow=(N_FEATURES+1),byrow=T)
-    len<-ncol(data[[peak]])
     }
 close(fc)
 cat("Data loaded!\n")
@@ -43,20 +44,20 @@ colnames(binding_status)<-FACTORS
 colnames(binding_temp)<-FACTORS
 
 # ---- Initialise parameters! ---- # These are all per-factor! Hence lists!
-transition_params <- vector("list")
 emission_params <- vector("list",N_FACTORS)
+transition_params <- vector("list")
 motifs<-vector("list")
+# per-peak transition params
 for (factor in FACTORS){
     transition_params[[factor]] <- vector("list",N_PEAKS)
     motifs[[factor]]<-get_motif(factor)
 }
 
-# for testing: only looping over one TF
 #ctcf_peaks <- which(bound_from_chip[,"CTCF"]==1)
-#N_SUBPEAKS <- length(ctcf_peaks)
+# for testing: only looping over one TF
 TEST_FACTORS<-"CTCF"
 delta.binding<-vector("numeric")
-# ---- The outer loop: 'sample' over binding states ---- #
+# ---- The outer loop: 'sample' over binding configurations ---- #
 for (iter in 1:N_ITER){
     cat('Iteration',iter,'\n')
     # ---- Middle loop: iterate over each factor! ---- #
@@ -69,7 +70,7 @@ for (iter in 1:N_ITER){
         # initialise emission parameters for this factor
         if (is.null(emission_params[[factor]])){
             cat("No emission parameters saved for ",factor," - making some up!\n")
-            emission_params[[factor]] <- matrix(rep(0.5,N_STATES*N_FEATURES),nrow=N_STATES,ncol=N_FEATURES)
+            emission_params[[factor]] <- matrix(runif(N_STATES*N_FEATURES),nrow=N_STATES,ncol=N_FEATURES)
         }
         # initialise a blank hmm with the right size... and fixed variables
         factor_hmm <- build_hmm(N_STATES,N_FEATURES,pwm)
