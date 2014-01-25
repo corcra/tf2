@@ -14,7 +14,7 @@ N_ITER <- 5
 N_FEATURES <- 3
 EM_THRESHOLD <- 0.5
 TAU <- 0.2
-N_CORES <- 2
+N_CORES <- 1
 
 # ---- Load functions! ---- #
 source('tf2_functions.r')
@@ -28,7 +28,7 @@ fc <- file('fake_data/fd.gz',open='r')
 data <- vector("list",N_PEAKS)
 for (peak in 1:N_PEAKS){
     buff <- scan(fc,sep=" ",what=numeric(),nlines=(N_FEATURES+1),quiet=TRUE)
-    # columns -> number of locations, rows -> number of emission variables (first one will be DNA)
+    # columns -> number of locations, rows -> number of emission variables (first one will be DNA sequence)
     data[[peak]] <- matrix(buff,nrow=(N_FEATURES+1),byrow=T)
     }
 close(fc)
@@ -60,7 +60,7 @@ delta.binding<-vector("numeric")
 # ---- The outer loop: 'sample' over binding configurations ---- #
 for (iter in 1:N_ITER){
     cat('Iteration',iter,'\n')
-    # ---- Middle loop: iterate over each factor! ---- #
+    # ---- First middle loop: iterate over each factor! ---- #
     for (factor in TEST_FACTORS){
         cat('Getting binding status for',factor,'\n')
         # get the motif
@@ -70,11 +70,11 @@ for (iter in 1:N_ITER){
         # initialise emission parameters for this factor
         if (is.null(emission_params[[factor]])){
             cat("No emission parameters saved for ",factor," - making some up!\n")
-            emission_params[[factor]] <- matrix(runif(N_STATES*N_FEATURES),nrow=N_STATES,ncol=N_FEATURES)
+            emission_params[[factor]] <- matrix(rep(0.5,N_STATES*N_FEATURES),nrow=N_STATES,ncol=N_FEATURES)
         }
         # initialise a blank hmm with the right size... and fixed variables
         factor_hmm <- build_hmm(N_STATES,N_FEATURES,pwm)
-        # calculate coincidence of this TF with the rest
+        # calculate coincidence of this TF with the rest (used to get a_BF)
         coincidence <- get_interactions(factor,binding_status)
         # when we finish EM we will record binding predictions for all peaks
         all_peaks_bound <- rep(NA,N_PEAKS)
@@ -97,7 +97,6 @@ for (iter in 1:N_ITER){
             # ---- Inner 'loop': iterate over peaks! --- #
             peak_results <- mclapply(1:N_PEAKS,eval_peak,factor_hmm,data,transition_params[[factor]],emission_params[[factor]],N_STATES,N_FEATURES,factor,factor_size,binding_status,coincidence,TAU,mc.cores=N_CORES)
 
-            #browser()
             for (peak in 1:N_PEAKS){
                 this_peak <- peak_results[[peak]]
 
@@ -114,6 +113,11 @@ for (iter in 1:N_ITER){
                 ll_cumulative <- ll_cumulative + loglik
             
                 # bound or not? we only care after EM has converged
+                byn <- this_peak$"bound"
+                if (byn==1){
+                    print("we think this peak is bound!")
+                    browser()
+                }
                 all_peaks_bound[[peak]] <- this_peak$"bound"
             }
             # update emission parameters after all peaks - if commented out, we're avoiding that (due to numerical issues)
@@ -122,7 +126,7 @@ for (iter in 1:N_ITER){
             # check how the likelihood has changed...
             ll <- ll_cumulative
             delta.ll <- ll-ll.old
-            print(ll)
+#            print(ll)
             if(delta.ll<0){
                 cat("ERROR: likelihood is decreasing!\n")
                 print(delta.ll)
