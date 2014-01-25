@@ -142,6 +142,17 @@ get_new_transition_params <- function(peak,peak_length,factor,factor_size,bindin
     return(list(B=c(a_BB,a_BF,a_BG),G=c(a_GB,a_GG)))
 }
 
+# this just displays the likelihoods
+visualise_probs <- function(gamma,peak,factor,N_STATES){
+    rb<-rainbow(N_STATES-2)
+    plot(gamma[1,],type="p",col="black",pch=1,cex=0.7,bty="l",ylab="Posterior",xlab="Location in peak")
+    for(s in seq(2,N_STATES-1)){
+        lines(gamma[s,],type="p",col=rb[s],pch=20)
+    }
+    lines(gamma[N_STATES,],type="p",col="grey",pch=20)
+    browser()
+}
+
 get_theta <- function(gamma,data,N_STATES,N_FEATURES){
     theta_d <- rowSums(gamma)
     theta_n <- matrix(NA,nrow=N_STATES,ncol=N_FEATURES)
@@ -240,6 +251,7 @@ eval_peak <- function(peak,factor_hmm,data,trans_params,emiss_params,N_STATES,N_
     new_trans_params <- get_new_transition_params(peak,peak_length,factor,factor_size,binding_status,coincidence,xis,TAU)
 
     # check if bound (the result of this only makes sense after EM has converged)
+    visualise_probs(gamma,peak,factor,N_STATES)
     posteriors <- gamma[2,]
     bound_yn <- is_bound(posteriors)
     
