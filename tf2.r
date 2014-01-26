@@ -11,6 +11,7 @@ N_FACTORS <- length(FACTORS)
 N_PEAKS <- nrow(bound_from_chip)
 #N_PEAKS <- 4
 N_ITER <- 5
+#N_FEATURES <- 1
 N_FEATURES <- 3
 EM_THRESHOLD <- 0.5
 TAU <- 0.2
@@ -18,6 +19,7 @@ N_CORES <- 1
 
 # ---- Load functions! ---- #
 source('tf2_functions.r')
+#.libPaths(new="/home/sh985/R/x86_64-unknown-linux-gnu-library/3.0")
 library(rqhmm)
 library(parallel)
 
