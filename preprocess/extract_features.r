@@ -12,6 +12,7 @@ THRE<-0.2
 get_feature1 <- function(signal_data,peak_mean){
     col_means <- colMeans(signal_data)
     f1<-ifelse(col_means>peak_mean,2,1)
+    f1[is.na(f1)]<-0
     return(f1)
 }
 

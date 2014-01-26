@@ -117,11 +117,17 @@ initialise_hmm<-function(hmm,N_STATES,N_FEATURES,transition_params,emission_para
 
 get_emission_prob<-function(hmm,peak_data,peak_length,state,N_FEATURES){
     probs<-rep(1,(peak_length-1))
+    pre_probs<-rep(1,(peak_length-1))
     for (slot_num in 1:(N_FEATURES+1)){
         emission_probs<-get.emission.params.qhmm(hmm,state,slot=slot_num)
         # this line might look a bit weird, but the value in the peak_data is actually the label found in the hmm
         # also note: we're actually only interested in the probs from 2... end... see the mathematical form!
-        probs<-probs*emission_probs[peak_data[slot_num,2:peak_length]]
+        states<-peak_data[slot_num,2:peak_length]
+        # missing data is uninformative
+        pre_probs[states==0]<-1
+        pre_probs[!states==0]<-emission_probs[states[!states==0]]
+        probs<-probs*pre_probs
+#        probs<-probs*emission_probs[peak_data[slot_num,2:peak_length]]
     }
     return(probs)
 }
@@ -250,7 +256,6 @@ eval_peak <- function(peak,factor_hmm,data,trans_params,emiss_params,N_STATES,N_
     # transitions
     xis <- get_xi(peak_hmm,alpha_prime,beta_prime,loglik,peak_data,N_STATES,N_FEATURES,peak_length)
     new_trans_params <- get_new_transition_params(peak,peak_length,factor,factor_size,binding_status,coincidence,xis,TAU)
-
     # check if bound (the result of this only makes sense after EM has converged)
     visualise_probs(gamma,peak,factor,N_STATES)
     posteriors <- gamma[2,]
