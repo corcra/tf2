@@ -1,0 +1,7 @@
+Rudai le deanamh: (in no particular order)
+
+    X. Parallelise extract_features
+2. More features?
+3. Some sort of log file?
+4. per-peak EM for transition parameters?
+5. Debug extract_features... el race conditions
