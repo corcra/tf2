@@ -144,12 +144,13 @@ get_new_transition_params <- function(peak,peak_length,factor,factor_size,bindin
 
 # this just displays the likelihoods
 visualise_probs <- function(gamma,peak,factor,N_STATES){
-    rb<-rainbow(N_STATES-2)
-    plot(gamma[1,],type="p",col="black",pch=1,cex=0.7,bty="l",ylab="Posterior",xlab="Location in peak")
+    rb<-rainbow(N_STATES*3,s=0.9,v=0.9)
+    plot(gamma[1,],type="p",col="black",pch=20,cex=0.8,ylab="Posterior",xlab="Location in peak",ylim=c(0,1))
+    abline(h=0.05,col="snow3",lty=3)
     for(s in seq(2,N_STATES-1)){
-        lines(gamma[s,],type="p",col=rb[s],pch=20)
+        lines(gamma[s,],type="p",col=ifelse(gamma[s,]>0.05,rb[s+N_STATES],"snow2"),pch=20)
     }
-    lines(gamma[N_STATES,],type="p",col="grey",pch=20)
+    lines(gamma[N_STATES,],type="p",col="sienna1",pch=20,cex=0.8)
     browser()
 }
 
